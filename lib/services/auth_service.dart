@@ -79,6 +79,12 @@ class AuthService {
   }
 
   Future<User?> getCurrentUser() async {
+    // Check if token exists first
+    final token = await _storage.getToken();
+    if (token == null) {
+      return null;
+    }
+    // Only return user if valid token exists
     return await _storage.getUser();
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:event_finder/providers/auth_provider.dart';
 import 'package:event_finder/utils/app_theme.dart';
+// Navigation uses named routes registered in main.dart
 
 class OrganizerHomeScreen extends StatefulWidget {
   const OrganizerHomeScreen({super.key});
@@ -62,33 +63,25 @@ class _OrganizerHomeScreenState extends State<OrganizerHomeScreen> {
                 context,
                 icon: Icons.event_note,
                 label: 'Create Event',
-                onTap: () {
-                  // Navigate to create event
-                },
+                onTap: () => Navigator.pushNamed(context, '/create-event'),
               ),
               _buildActionCard(
                 context,
                 icon: Icons.event,
                 label: 'My Events',
-                onTap: () {
-                  // Navigate to manage events
-                },
+                onTap: () => Navigator.pushNamed(context, '/manage-events'),
               ),
               _buildActionCard(
                 context,
                 icon: Icons.people,
                 label: 'Bookings',
-                onTap: () {
-                  // Navigate to bookings
-                },
+                onTap: () => Navigator.pushNamed(context, '/bookings'),
               ),
               _buildActionCard(
                 context,
                 icon: Icons.analytics,
                 label: 'Analytics',
-                onTap: () {
-                  // Navigate to analytics
-                },
+                onTap: () => Navigator.pushNamed(context, '/analytics'),
               ),
             ],
           ),
@@ -96,7 +89,7 @@ class _OrganizerHomeScreenState extends State<OrganizerHomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Navigate to create event
+          Navigator.pushNamed(context, '/create-event');
         },
         tooltip: 'Create Event',
         child: const Icon(Icons.add),

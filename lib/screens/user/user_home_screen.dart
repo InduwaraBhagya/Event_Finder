@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:event_finder/providers/auth_provider.dart';
 import 'package:event_finder/utils/app_theme.dart';
+// Navigation uses named routes registered in main.dart
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -62,33 +63,25 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 context,
                 icon: Icons.event,
                 label: 'Browse Events',
-                onTap: () {
-                  // Navigate to event list
-                },
+                onTap: () => Navigator.pushNamed(context, '/events'),
               ),
               _buildActionCard(
                 context,
                 icon: Icons.favorite,
                 label: 'Wishlist',
-                onTap: () {
-                  // Navigate to wishlist
-                },
+                onTap: () => Navigator.pushNamed(context, '/wishlist'),
               ),
               _buildActionCard(
                 context,
                 icon: Icons.bookmark,
                 label: 'My Bookings',
-                onTap: () {
-                  // Navigate to bookings
-                },
+                onTap: () => Navigator.pushNamed(context, '/bookings'),
               ),
               _buildActionCard(
                 context,
                 icon: Icons.location_on,
                 label: 'Near Me',
-                onTap: () {
-                  // Navigate to nearby events
-                },
+                onTap: () => Navigator.pushNamed(context, '/events'),
               ),
             ],
           ),

@@ -4,14 +4,14 @@ class AppConfig {
   static const String appVersion = '1.0.0';
   
   // API Configuration
-  // For Android Emulator:
-  static const String baseUrl = 'http://192.168.1.7:3000/api';
+  // For Physical Device/Mobile:
+  static const String baseUrl = 'http://10.222.36.19:3000/api';
   
   // For iOS Simulator use:
   // static const String baseUrl = 'http://localhost:3000/api';
   
-  // For Physical Device (replace with your computer's IP):
-  // static const String baseUrl = 'http://YOUR_IP:3000/api';
+  // For Android Emulator:
+  // static const String baseUrl = 'http://192.168.183.1:3000/api';
   
   static const String apiVersion = 'v1';
   

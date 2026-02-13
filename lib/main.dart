@@ -8,6 +8,15 @@ import 'package:event_finder/providers/location_provider.dart';
 import 'package:event_finder/providers/booking_provider.dart';
 import 'package:event_finder/providers/wishlist_provider.dart';
 import 'package:event_finder/screens/splash_screen.dart';
+import 'package:event_finder/screens/user/user_home_screen.dart';
+import 'package:event_finder/screens/organizer/organizer_home_screen.dart';
+import 'package:event_finder/screens/admin/admin_home_screen.dart';
+import 'package:event_finder/screens/organizer/create_event_screen.dart';
+import 'package:event_finder/screens/organizer/manage_events_screen.dart';
+import 'package:event_finder/screens/user/bookings_screen.dart';
+import 'package:event_finder/screens/user/wishlist_screen.dart';
+import 'package:event_finder/screens/user/event_list_screen.dart';
+import 'package:event_finder/screens/organizer/analytics_screen.dart';
 import 'package:event_finder/utils/app_theme.dart';
 
 void main() async {
@@ -41,7 +50,19 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
+        // Keep splash as the home; named routes are registered for centralized navigation
         home: const SplashScreen(),
+        routes: {
+          '/user-home': (_) => const UserHomeScreen(),
+          '/organizer-home': (_) => const OrganizerHomeScreen(),
+          '/admin-home': (_) => const AdminHomeScreen(),
+          '/create-event': (_) => const CreateEventScreen(),
+          '/manage-events': (_) => const ManageEventsScreen(),
+          '/bookings': (_) => const BookingsScreen(),
+          '/wishlist': (_) => const WishlistScreen(),
+          '/events': (_) => const EventListScreen(),
+          '/analytics': (_) => const AnalyticsScreen(),
+        },
       ),
     );
   }
