@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
           '/admin-home': (_) => const AdminHomeScreen(),
           '/create-event': (_) => const CreateEventScreen(),
           '/manage-events': (_) => const ManageEventsScreen(),
-          '/bookings': (_) => const BookingsScreen(),
+          '/bookings': (_) => const MyBookingsScreen(),
           '/wishlist': (_) => const WishlistScreen(),
           '/events': (_) => const EventListScreen(),
           '/analytics': (_) => const AnalyticsScreen(),

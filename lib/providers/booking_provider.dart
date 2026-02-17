@@ -5,7 +5,7 @@ import 'package:event_finder/config/app_config.dart';
 
 class BookingProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
-  
+
   List<Booking> _bookings = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -14,80 +14,125 @@ class BookingProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Fetch user's bookings
+  // ✅ Fetch user's bookings (requires auth token)
   Future<void> fetchBookings() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await _apiClient.get(AppConfig.bookingsEndpoint);
-      
-      if (response['bookings'] != null) {
-        _bookings = (response['bookings'] as List)
+      final response = await _apiClient.get(
+        AppConfig.bookingsEndpoint,
+        requiresAuth: true, // ✅ bookings need auth
+      );
+
+      print('📥 BookingProvider fetchBookings: ${response?.keys?.toList()}');
+
+      if (response == null) {
+        _bookings = [];
+        return;
+      }
+
+      // ✅ Handle both "bookings" and "data" response keys
+      List<dynamic>? list =
+          response['bookings'] ?? response['data'];
+
+      if (list != null) {
+        _bookings = list
             .map((json) => Booking.fromJson(json))
             .toList();
+        print('✅ BookingProvider: Loaded ${_bookings.length} bookings');
+      } else {
+        _bookings = [];
       }
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      print('❌ BookingProvider fetchBookings: $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Create booking
+  // ✅ Create a booking
   Future<bool> createBooking(String eventId, int numberOfSeats) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      print('📡 BookingProvider: Creating booking for event $eventId, seats=$numberOfSeats');
+
       final response = await _apiClient.post(
         AppConfig.bookingsEndpoint,
         {
           'eventId': eventId,
           'numberOfSeats': numberOfSeats,
         },
+        requiresAuth: true, // ✅ requires login
       );
 
-      if (response['booking'] != null) {
-        final booking = Booking.fromJson(response['booking']);
-        _bookings.add(booking);
-        _isLoading = false;
-        notifyListeners();
+      print('📥 BookingProvider createBooking response: ${response?.keys?.toList()}');
+
+      if (response == null) return false;
+
+      // ✅ Handle both "booking" and "data" response keys
+      final bookingData = response['booking'] ?? response['data'];
+
+      if (bookingData != null) {
+        final newBooking = Booking.fromJson(bookingData);
+        _bookings.insert(0, newBooking); // Add to top of list
+        print('✅ BookingProvider: Booking created! ID=${newBooking.id}');
         return true;
       }
+
+      // If success field is present and true
+      if (response['success'] == true) {
+        await fetchBookings(); // Refresh to get latest
+        return true;
+      }
+
       return false;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      print('❌ BookingProvider createBooking: $_errorMessage');
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
-  // Cancel booking
+  // ✅ Cancel a booking
   Future<bool> cancelBooking(String bookingId) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _apiClient.delete('${AppConfig.bookingsEndpoint}/$bookingId');
-      _bookings.removeWhere((booking) => booking.id == bookingId);
-      _isLoading = false;
-      notifyListeners();
+      await _apiClient.delete(
+        '${AppConfig.bookingsEndpoint}/$bookingId',
+        requiresAuth: true,
+      );
+
+      // Update local state - mark as cancelled
+      final index = _bookings.indexWhere((b) => b.id == bookingId);
+      if (index != -1) {
+        _bookings[index] = _bookings[index].copyWith(status: 'cancelled');
+      }
+
+      print('✅ BookingProvider: Booking $bookingId cancelled');
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      print('❌ BookingProvider cancelBooking: $_errorMessage');
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
-  // Clear error
   void clearError() {
     _errorMessage = null;
     notifyListeners();

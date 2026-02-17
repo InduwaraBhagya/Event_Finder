@@ -5,7 +5,7 @@ class AppConfig {
   
   // API Configuration
   // For Physical Device/Mobile:
-  static const String baseUrl = 'http://10.222.36.19:3000/api';
+  static const String baseUrl = 'https://evete-finder-backend.vercel.app/api';
   
   // For iOS Simulator use:
   // static const String baseUrl = 'http://localhost:3000/api';

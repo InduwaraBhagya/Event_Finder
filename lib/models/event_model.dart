@@ -18,7 +18,7 @@ class Event {
   final double? rating;
   final int? reviewCount;
   final DateTime createdAt;
-  double? distance; // Distance from user's location (in km)
+  double? distance;
 
   Event({
     required this.id,
@@ -43,34 +43,97 @@ class Event {
     this.distance,
   });
 
+  // ✅ Normalize category names from database to match UI filter chips
+  static String _normalizeCategory(String? raw) {
+    if (raw == null || raw.isEmpty) return 'Other';
+    
+    // Map variations → standard names
+    switch (raw.toLowerCase().trim()) {
+      case 'art':
+      case 'arts':
+      case 'arts & culture':
+        return 'Arts';
+      case 'food':
+      case 'food & drink':
+      case 'food and drink':
+      case 'food & wine':
+        return 'Food & Drink';
+      case 'tech':
+      case 'technology':
+        return 'Technology';
+      case 'music':
+        return 'Music';
+      case 'sport':
+      case 'sports':
+        return 'Sports';
+      case 'business':
+      case 'networking':
+        return 'Business';
+      case 'health':
+      case 'wellness':
+      case 'health & wellness':
+        return 'Health';
+      case 'education':
+      case 'educational':
+        return 'Education';
+      case 'entertainment':
+        return 'Entertainment';
+      default:
+        return raw; // Keep as-is if no match
+    }
+  }
+
   factory Event.fromJson(Map<String, dynamic> json) {
+    // ✅ Handle organizer as object or string
+    String orgId = '';
+    String orgName = '';
+
+    if (json['organizer'] is Map) {
+      orgId = json['organizer']['_id'] ?? json['organizer']['id'] ?? '';
+      orgName = json['organizer']['name'] ?? '';
+    } else if (json['organizer'] is String) {
+      orgId = json['organizer'];
+    }
+
+    // Fallback fields
+    if (orgId.isEmpty) orgId = json['organizerId'] ?? '';
+    if (orgName.isEmpty) orgName = json['organizerName'] ?? 'Unknown Organizer';
+
     return Event(
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      category: json['category'] ?? 'Other',
-      date: json['date'] != null 
-          ? DateTime.parse(json['date'])
+      // ✅ Normalize category to match filter chips
+      category: _normalizeCategory(json['category']),
+      date: json['date'] != null
+          ? DateTime.tryParse(json['date']) ?? DateTime.now()
           : DateTime.now(),
       time: json['time'] ?? '',
       location: json['location'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),
-      organizerId: json['organizerId'] ?? json['organizer']?['_id'] ?? '',
-      organizerName: json['organizerName'] ?? json['organizer']?['name'] ?? '',
-      images: json['images'] != null 
-          ? List<String>.from(json['images'])
+      organizerId: orgId,
+      organizerName: orgName,
+      // ✅ Handle images array safely
+      images: json['images'] != null
+          ? List<String>.from(
+              (json['images'] as List).where((img) => img != null && img.toString().isNotEmpty)
+            )
           : [],
       price: (json['price'] ?? 0.0).toDouble(),
       totalSeats: json['totalSeats'] ?? 0,
       availableSeats: json['availableSeats'] ?? 0,
       isFeatured: json['isFeatured'] ?? false,
-      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+      rating: json['rating'] != null
+          ? (json['rating'] as num).toDouble()
+          : null,
       reviewCount: json['reviewCount'],
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'])
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
           : DateTime.now(),
-      distance: json['distance'] != null ? (json['distance'] as num).toDouble() : null,
+      distance: json['distance'] != null
+          ? (json['distance'] as num).toDouble()
+          : null,
     );
   }
 
@@ -100,25 +163,13 @@ class Event {
   }
 
   Event copyWith({
-    String? id,
-    String? title,
-    String? description,
-    String? category,
-    DateTime? date,
-    String? time,
-    String? location,
-    double? latitude,
-    double? longitude,
-    String? organizerId,
-    String? organizerName,
-    List<String>? images,
-    double? price,
-    int? totalSeats,
-    int? availableSeats,
-    bool? isFeatured,
-    double? rating,
-    int? reviewCount,
-    DateTime? createdAt,
+    String? id, String? title, String? description,
+    String? category, DateTime? date, String? time,
+    String? location, double? latitude, double? longitude,
+    String? organizerId, String? organizerName,
+    List<String>? images, double? price,
+    int? totalSeats, int? availableSeats, bool? isFeatured,
+    double? rating, int? reviewCount, DateTime? createdAt,
     double? distance,
   }) {
     return Event(
