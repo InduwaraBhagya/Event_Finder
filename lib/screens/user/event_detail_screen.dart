@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:event_finder/models/event_model.dart';
 import 'package:event_finder/providers/booking_provider.dart';
 import 'package:event_finder/providers/auth_provider.dart';
+import 'package:event_finder/providers/wishlist_provider.dart';
 import 'package:event_finder/screens/user/bookings_screen.dart';
 import 'package:event_finder/utils/app_theme.dart';
 import 'package:intl/intl.dart';

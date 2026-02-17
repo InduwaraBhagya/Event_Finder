@@ -1,7 +1,7 @@
-import 'package:event_finder/screens/user/event_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:event_finder/providers/event_provider.dart';
+import 'package:event_finder/providers/wishlist_provider.dart';
 import 'package:event_finder/models/event_model.dart';
 import 'package:event_finder/screens/user/event_detail_screen.dart';
 import 'package:event_finder/utils/app_theme.dart';
@@ -31,16 +31,14 @@ class _EventListScreenState extends State<EventListScreen> {
   }
 
   Future<void> _loadEvents() async {
-    print('📥 EventListScreen: Loading events...');
     setState(() => _selectedCategory = 'All');
     final provider = Provider.of<EventProvider>(context, listen: false);
     provider.clearFilters();
     await provider.fetchEvents();
-    print('✅ EventListScreen: ${provider.events.length} events loaded');
   }
 
   void _onSearchChanged(String query) {
-    setState(() {}); // Rebuild for clear button
+    setState(() {});
     final provider = Provider.of<EventProvider>(context, listen: false);
     if (query.isEmpty) {
       provider.clearFilters();
@@ -101,7 +99,6 @@ class _EventListScreenState extends State<EventListScreen> {
           ),
 
           // ── Category Chips ───────────────────────
-          // ✅ All categories from your database
           SizedBox(
             height: 46,
             child: ListView(
@@ -129,24 +126,16 @@ class _EventListScreenState extends State<EventListScreen> {
           Expanded(
             child: Consumer<EventProvider>(
               builder: (context, provider, _) {
-                // Loading
                 if (provider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
-                // Error
                 if (provider.errorMessage != null) {
                   return _buildError(provider.errorMessage!);
                 }
-
                 final events = provider.events;
-
-                // Empty
                 if (events.isEmpty) {
                   return _buildEmpty();
                 }
-
-                // ✅ Show events!
                 return RefreshIndicator(
                   onRefresh: _loadEvents,
                   child: ListView.builder(
@@ -163,7 +152,7 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  // ── Category Chip Widget ─────────────────────
+  // ── Category Chip ────────────────────────────
   Widget _chip(String category) {
     final isSelected = _selectedCategory == category;
     return Padding(
@@ -259,38 +248,100 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  // ── Event Card Widget ────────────────────────
+  // ── Event Card ───────────────────────────────
   Widget _buildCard(Event event) {
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => EventDetailScreen(event: event),
-            ),
-          );
-        },
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EventDetailScreen(event: event),
+          ),
+        ),
         borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            _buildImage(event),
 
-            // Info
+            // ── Image with Heart Button on top ───
+            Stack(
+              children: [
+                // Event image / placeholder
+                _buildImage(event),
+
+                // ❤️ Wishlist heart button (top-right of image)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Consumer<WishlistProvider>(
+                    builder: (ctx, wishlistProvider, _) {
+                      final isWishlisted =
+                          wishlistProvider.isInWishlist(event.id);
+                      return GestureDetector(
+                        onTap: () async {
+                          await wishlistProvider.toggleWishlist(event);
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isWishlisted
+                                        ? 'Removed from wishlist'
+                                        : '❤️ Added to wishlist',
+                                  ),
+                                  backgroundColor: isWishlisted
+                                      ? Colors.black87
+                                      : Colors.pink[600],
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              );
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isWishlisted
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: isWishlisted ? Colors.red : Colors.grey,
+                            size: 22,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // ── Event Info ───────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category + Featured
+                  // Category + Featured badges
                   Row(
                     children: [
                       _badge(event.category, AppTheme.primaryColor),
@@ -327,15 +378,15 @@ class _EventListScreenState extends State<EventListScreen> {
                         size: 14, color: Colors.grey[600]),
                     const SizedBox(width: 6),
                     Text(dateFormat.format(event.date),
-                        style:
-                            TextStyle(color: Colors.grey[600], fontSize: 13)),
+                        style: TextStyle(
+                            color: Colors.grey[600], fontSize: 13)),
                     const SizedBox(width: 16),
                     Icon(Icons.access_time,
                         size: 14, color: Colors.grey[600]),
                     const SizedBox(width: 6),
                     Text(event.time,
-                        style:
-                            TextStyle(color: Colors.grey[600], fontSize: 13)),
+                        style: TextStyle(
+                            color: Colors.grey[600], fontSize: 13)),
                   ]),
                   const SizedBox(height: 6),
 
@@ -347,8 +398,8 @@ class _EventListScreenState extends State<EventListScreen> {
                     Expanded(
                       child: Text(
                         event.location,
-                        style:
-                            TextStyle(color: Colors.grey[600], fontSize: 13),
+                        style: TextStyle(
+                            color: Colors.grey[600], fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -356,7 +407,7 @@ class _EventListScreenState extends State<EventListScreen> {
                   ]),
                   const SizedBox(height: 12),
 
-                  // Price & Seats
+                  // Price & Seats Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -377,7 +428,7 @@ class _EventListScreenState extends State<EventListScreen> {
                         ),
                       ]),
 
-                      // Seats
+                      // Seats badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
@@ -433,19 +484,16 @@ class _EventListScreenState extends State<EventListScreen> {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-            color: color, fontSize: 12, fontWeight: FontWeight.w600),
-      ),
+      child: Text(text,
+          style: TextStyle(
+              color: color, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 
   Widget _buildImage(Event event) {
     if (event.imageUrl.isNotEmpty) {
       return ClipRRect(
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         child: Image.network(
           event.imageUrl,
           height: 180,
@@ -455,10 +503,10 @@ class _EventListScreenState extends State<EventListScreen> {
           loadingBuilder: (ctx, child, progress) {
             if (progress == null) return child;
             return Container(
-                height: 180,
-                color: Colors.grey[200],
-                child:
-                    const Center(child: CircularProgressIndicator()));
+              height: 180,
+              color: Colors.grey[200],
+              child: const Center(child: CircularProgressIndicator()),
+            );
           },
         ),
       );
@@ -478,18 +526,18 @@ class _EventListScreenState extends State<EventListScreen> {
       'Education': Icons.school,
       'Entertainment': Icons.theater_comedy,
     };
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+      child: Container(
+        height: 180,
+        width: double.infinity,
         color: AppTheme.primaryColor.withOpacity(0.07),
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      child: Center(
-        child: Icon(
-          icons[category] ?? Icons.event,
-          size: 60,
-          color: AppTheme.primaryColor.withOpacity(0.4),
+        child: Center(
+          child: Icon(
+            icons[category] ?? Icons.event,
+            size: 60,
+            color: AppTheme.primaryColor.withOpacity(0.4),
+          ),
         ),
       ),
     );
