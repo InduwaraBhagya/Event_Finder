@@ -1,4 +1,3 @@
-import 'package:event_finder/screens/user/bookings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:event_finder/models/event_model.dart';
@@ -19,20 +18,57 @@ class EventDetailScreen extends StatefulWidget {
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
   int _selectedSeats = 1;
-
   Event get event => widget.event;
+
+  // ✅ Category-based placeholder images (same as event list)
+  final Map<String, String> _categoryImages = {
+    'Technology': 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&q=80',
+    'Music': 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&q=80',
+    'Sports': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80',
+    'Arts': 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&q=80',
+    'Food & Drink': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
+    'Business': 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80',
+    'Health': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
+    'Education': 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80',
+    'Entertainment': 'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=800&q=80',
+    'Other': 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80',
+  };
+
+  // ✅ Get image URL with fallback
+  String _getEventImageUrl() {
+    if (event.imageUrl.isNotEmpty && 
+        !event.imageUrl.contains('placeholder')) {
+      return event.imageUrl;
+    }
+    return _categoryImages[event.category] ?? _categoryImages['Other']!;
+  }
+
+  IconData _getCategoryIcon() {
+    const icons = {
+      'Technology': Icons.computer,
+      'Music': Icons.music_note,
+      'Sports': Icons.sports,
+      'Arts': Icons.palette,
+      'Food & Drink': Icons.restaurant,
+      'Business': Icons.business_center,
+      'Health': Icons.favorite,
+      'Education': Icons.school,
+      'Entertainment': Icons.theater_comedy,
+    };
+    return icons[event.category] ?? Icons.event;
+  }
 
   // ── Book Event ────────────────────────────────────────
   Future<void> _bookEvent() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Must be logged in
-    if (!authProvider.isAuthenticated) {
+    // ✅ Check login using isLoggedIn (NOT isAuthenticated)
+    if (!authProvider.isLoggedIn) {
       _showSnack('Please login to book events', isError: true);
       return;
     }
 
-    // Show confirmation dialog
+    // Show confirmation
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -87,7 +123,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         await bookingProvider.createBooking(event.id, _selectedSeats);
 
     if (success && mounted) {
-      // Show success and go to My Bookings
+      // Success dialog
       await showDialog(
         context: context,
         barrierDismissible: false,
@@ -111,7 +147,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   style: TextStyle(
                       fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text('You have successfully booked $_selectedSeats seat(s) for',
+              Text('You booked $_selectedSeats seat(s) for',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 4),
@@ -125,8 +161,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(ctx); // Close dialog
-                  // Navigate to My Bookings
+                  Navigator.pop(ctx);
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -191,16 +226,58 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         slivers: [
           // ── App Bar with Image ─────────────────────
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: event.imageUrl.isNotEmpty
-                  ? Image.network(
-                      event.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _headerPlaceholder(),
-                    )
-                  : _headerPlaceholder(),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // ✅ Image with proper error handling
+                  Image.network(
+                    _getEventImageUrl(),
+                    fit: BoxFit.cover,
+                    loadingBuilder: (ctx, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: progress.expectedTotalBytes != null
+                                ? progress.cumulativeBytesLoaded /
+                                    progress.expectedTotalBytes!
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (ctx, error, trace) {
+                      // Fallback to category icon
+                      return Container(
+                        color: AppTheme.primaryColor.withOpacity(0.15),
+                        child: Center(
+                          child: Icon(_getCategoryIcon(),
+                              size: 80,
+                              color: AppTheme.primaryColor.withOpacity(0.4)),
+                        ),
+                      );
+                    },
+                  ),
+                  // Dark gradient overlay
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.5),
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             leading: GestureDetector(
               onTap: () => Navigator.pop(context),
@@ -213,6 +290,57 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
+            actions: [
+              // ❤️ Wishlist heart button
+              Consumer<WishlistProvider>(
+                builder: (ctx, wishlistProvider, _) {
+                  final isWishlisted =
+                      wishlistProvider.isInWishlist(event.id);
+                  return GestureDetector(
+                    onTap: () async {
+                      final authProvider =
+                          Provider.of<AuthProvider>(context, listen: false);
+                      if (!authProvider.isLoggedIn) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please login to save events'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
+                      await wishlistProvider.toggleWishlist(event);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(isWishlisted
+                                ? 'Removed from wishlist'
+                                : '❤️ Added to wishlist'),
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black45,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        isWishlisted
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: isWishlisted ? Colors.red : Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
 
           // ── Event Content ──────────────────────────
@@ -222,7 +350,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category + Featured
+                  // Category + Featured badges
                   Row(children: [
                     _chip(event.category, AppTheme.primaryColor),
                     if (event.isFeatured) ...[
@@ -238,7 +366,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
 
-                  // Rating
+                  // Rating (if exists)
                   if (event.rating != null && event.rating! > 0)
                     Row(children: [
                       const Icon(Icons.star, color: Colors.amber, size: 18),
@@ -269,7 +397,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   _infoRow(Icons.person, 'Organizer', event.organizerName),
                   const SizedBox(height: 16),
 
-                  // Seats
+                  // Available Seats
                   _infoRow(
                     Icons.event_seat,
                     'Available Seats',
@@ -318,29 +446,25 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500)),
                           Row(children: [
-                            // Minus
                             _seatBtn(
                               Icons.remove,
                               _selectedSeats > 1
-                                  ? () => setState(
-                                      () => _selectedSeats--)
+                                  ? () => setState(() => _selectedSeats--)
                                   : null,
                             ),
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20),
                               child: Text('$_selectedSeats',
                                   style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold)),
                             ),
-                            // Plus
                             _seatBtn(
                               Icons.add,
                               _selectedSeats < event.availableSeats &&
                                       _selectedSeats < 10
-                                  ? () => setState(
-                                      () => _selectedSeats++)
+                                  ? () => setState(() => _selectedSeats++)
                                   : null,
                             ),
                           ]),
@@ -363,7 +487,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('$_selectedSeats seat(s) × ${event.isFree ? 'Free' : 'Rs.${event.price.toStringAsFixed(0)}'}',
+                              Text(
+                                  '$_selectedSeats seat(s) × ${event.isFree ? 'Free' : 'Rs.${event.price.toStringAsFixed(0)}'}',
                                   style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 13)),
@@ -388,7 +513,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     ),
                   ],
 
-                  // Bottom padding for FAB
                   const SizedBox(height: 100),
                 ],
               ),
@@ -467,16 +591,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget _headerPlaceholder() {
-    return Container(
-      color: AppTheme.primaryColor.withOpacity(0.15),
-      child: Center(
-        child: Icon(Icons.event,
-            size: 80, color: AppTheme.primaryColor.withOpacity(0.4)),
       ),
     );
   }
