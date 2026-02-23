@@ -32,7 +32,7 @@ class _EventListScreenState extends State<EventListScreen> {
     {'name': 'Other', 'icon': Icons.category},
   ];
 
-  // ✅ Category-specific placeholder images from Unsplash
+  //  Category-specific placeholder images from Unsplash
   final Map<String, String> _categoryImages = {
     'Technology': 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500&q=80',
     'Music': 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&q=80',

@@ -12,13 +12,13 @@ class EventProvider with ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isFiltered = false; // ✅ Track if filter is active
+  bool _isFiltered = false;
 
   String? _selectedCategory;
   DateTime? _selectedDate;
   double? _selectedDistance;
 
-  // ✅ FIXED getter - use _isFiltered flag instead of isEmpty check
+  // ── Getters ───────────────────────────────────────────
   List<Event> get events => _isFiltered ? _filteredEvents : _events;
   List<Event> get featuredEvents => _featuredEvents;
   Event? get selectedEvent => _selectedEvent;
@@ -28,7 +28,7 @@ class EventProvider with ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   double? get selectedDistance => _selectedDistance;
 
-  // ✅ Fetch all events
+  // ── Fetch all events ──────────────────────────────────
   Future<void> fetchEvents({
     String? category,
     DateTime? date,
@@ -39,7 +39,7 @@ class EventProvider with ChangeNotifier {
     print('🔄 EventProvider: fetchEvents called');
     _isLoading = true;
     _errorMessage = null;
-    _isFiltered = false; // Reset filter
+    _isFiltered = false;
     notifyListeners();
 
     try {
@@ -62,7 +62,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Fetch featured events
+  // ── Fetch featured events ─────────────────────────────
   Future<void> fetchFeaturedEvents() async {
     try {
       _featuredEvents = await _eventService.getFeaturedEvents();
@@ -73,7 +73,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Search events
+  // ── Search events ─────────────────────────────────────
   Future<void> searchEvents(String query) async {
     if (query.isEmpty) {
       clearFilters();
@@ -95,7 +95,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Get event by ID
+  // ── Get event by ID ───────────────────────────────────
   Future<void> fetchEventById(String id) async {
     _isLoading = true;
     notifyListeners();
@@ -110,7 +110,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Filter by category
+  // ── Filter by category ────────────────────────────────
   void filterByCategory(String? category) {
     _selectedCategory = category;
     if (category == null) {
@@ -125,7 +125,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ Filter by date
+  // ── Filter by date ────────────────────────────────────
   void filterByDate(DateTime? date) {
     _selectedDate = date;
     if (date == null) {
@@ -142,7 +142,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ Filter by distance
+  // ── Filter by distance ────────────────────────────────
   void filterByDistance(double? distance) {
     _selectedDistance = distance;
     if (distance == null) {
@@ -161,7 +161,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ Clear all filters
+  // ── Clear all filters ─────────────────────────────────
   void clearFilters() {
     _selectedCategory = null;
     _selectedDate = null;
@@ -171,13 +171,13 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ Clear error
+  // ── Clear error ───────────────────────────────────────
   void clearError() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  // ✅ Create event (organizer)
+  // ── Create event ──────────────────────────────────────
   Future<bool> createEvent(Map<String, dynamic> eventData) async {
     _isLoading = true;
     _errorMessage = null;
@@ -185,7 +185,7 @@ class EventProvider with ChangeNotifier {
 
     try {
       await _eventService.createEvent(eventData);
-      await fetchEvents();
+      await fetchEvents(); // Refresh list
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -196,7 +196,9 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Update event (organizer)
+  // ── Update event ──────────────────────────────────────
+  // Works for both full update (edit screen) and
+  // partial update (e.g. toggle isFeatured from admin)
   Future<bool> updateEvent(String id, Map<String, dynamic> eventData) async {
     _isLoading = true;
     _errorMessage = null;
@@ -204,10 +206,37 @@ class EventProvider with ChangeNotifier {
 
     try {
       await _eventService.updateEvent(id, eventData);
-      await fetchEvents();
+
+      // ✅ Optimistically update local list so UI reflects
+      // the change instantly without a full re-fetch
+      final index = _events.indexWhere((e) => e.id == id);
+      if (index != -1) {
+        final existing = _events[index];
+        _events[index] = existing.copyWith(
+          title: eventData['title'] ?? existing.title,
+          description: eventData['description'] ?? existing.description,
+          category: eventData['category'] ?? existing.category,
+          price: eventData['price'] != null
+              ? (eventData['price'] as num).toDouble()
+              : existing.price,
+          isFeatured: eventData['isFeatured'] ?? existing.isFeatured,
+          totalSeats: eventData['totalSeats'] ?? existing.totalSeats,
+          availableSeats: eventData['availableSeats'] ?? existing.availableSeats,
+        );
+
+        // Also update filtered list if active
+        final filteredIndex = _filteredEvents.indexWhere((e) => e.id == id);
+        if (filteredIndex != -1) {
+          _filteredEvents[filteredIndex] = _events[index];
+        }
+      }
+
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      // On error, do a full refresh to sync with server
+      await fetchEvents();
       return false;
     } finally {
       _isLoading = false;
@@ -215,7 +244,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Delete event (organizer)
+  // ── Delete event ──────────────────────────────────────
   Future<bool> deleteEvent(String id) async {
     _isLoading = true;
     _errorMessage = null;
@@ -223,8 +252,11 @@ class EventProvider with ChangeNotifier {
 
     try {
       await _eventService.deleteEvent(id);
+
+      // ✅ Remove from both lists immediately
       _events.removeWhere((event) => event.id == id);
       _filteredEvents.removeWhere((event) => event.id == id);
+
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');

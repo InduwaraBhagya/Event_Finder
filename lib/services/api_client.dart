@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:event_finder/config/app_config.dart';
 import 'package:event_finder/services/storage_service.dart';
 
@@ -10,35 +12,36 @@ class ApiClient {
 
   final StorageService _storage = StorageService();
 
+  // ── Build headers ─────────────────────────────────────
   Future<Map<String, String>> _getHeaders({bool requiresAuth = true}) async {
-    Map<String, String> headers = {
+    final headers = <String, String>{
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      'Accept':       'application/json',
     };
 
     if (requiresAuth) {
       final token = await _storage.getToken();
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
+        print('🔑 Token attached: Bearer ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+      } else {
+        print('⚠️ No token found — request will be unauthenticated');
       }
     }
 
     return headers;
   }
 
-  // ✅ GET request - requiresAuth param works correctly
+  // ── GET ───────────────────────────────────────────────
   Future<dynamic> get(
     String endpoint, {
-    bool requiresAuth = true, // ✅ Default true but can be set to false
+    bool requiresAuth = true,
     Map<String, dynamic>? queryParams,
   }) async {
     try {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
 
-      // Build URL
       String urlString = '${AppConfig.baseUrl}$endpoint';
-
-      // Add query params if provided separately
       if (queryParams != null && queryParams.isNotEmpty) {
         final queryString = queryParams.entries
             .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
@@ -47,15 +50,13 @@ class ApiClient {
       }
 
       final url = Uri.parse(urlString);
-      print('🌐 API GET: $url');
-      print('🔐 Auth: $requiresAuth | Headers: ${headers.keys.toList()}');
+      print('🌐 GET → $url');
 
-      final response = await http.get(url, headers: headers)
+      final response = await http
+          .get(url, headers: headers)
           .timeout(const Duration(seconds: 30));
 
-      print('📥 Status: ${response.statusCode}');
-      print('📥 Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
-
+      print('📥 GET ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
       print('❌ GET Error: $e');
@@ -63,7 +64,7 @@ class ApiClient {
     }
   }
 
-  // ✅ POST request
+  // ── POST ──────────────────────────────────────────────
   Future<dynamic> post(
     String endpoint,
     Map<String, dynamic> body, {
@@ -71,18 +72,17 @@ class ApiClient {
   }) async {
     try {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
-      final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
+      final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      print('🌐 API POST: $url');
+      print('🌐 POST → $url');
+      print('📦 Body → ${jsonEncode(body)}');
 
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(url, headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 30));
 
-      print('📥 POST Status: ${response.statusCode}');
-
+      print('📥 POST ${response.statusCode} ← $url');
+      print('📥 Response body → ${response.body}');
       return _handleResponse(response);
     } catch (e) {
       print('❌ POST Error: $e');
@@ -90,7 +90,7 @@ class ApiClient {
     }
   }
 
-  // ✅ PUT request
+  // ── PUT ───────────────────────────────────────────────
   Future<dynamic> put(
     String endpoint,
     Map<String, dynamic> body, {
@@ -98,52 +98,155 @@ class ApiClient {
   }) async {
     try {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
-      final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
+      final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      final response = await http.put(
-        url,
-        headers: headers,
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 30));
+      print('🌐 PUT → $url');
 
+      final response = await http
+          .put(url, headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 PUT ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
+      print('❌ PUT Error: $e');
       throw Exception('Network error: $e');
     }
   }
 
-  // ✅ DELETE request
+  // ── PATCH ─────────────────────────────────────────────
+  Future<dynamic> patch(
+    String endpoint,
+    Map<String, dynamic> body, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(requiresAuth: requiresAuth);
+      final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
+
+      print('🌐 PATCH → $url');
+
+      final response = await http
+          .patch(url, headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 PATCH ${response.statusCode} ← $url');
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ PATCH Error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // ── DELETE ────────────────────────────────────────────
   Future<dynamic> delete(
     String endpoint, {
     bool requiresAuth = true,
   }) async {
     try {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
-      final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
+      final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      final response = await http.delete(url, headers: headers)
+      print('🌐 DELETE → $url');
+
+      final response = await http
+          .delete(url, headers: headers)
           .timeout(const Duration(seconds: 30));
 
+      print('📥 DELETE ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
+      print('❌ DELETE Error: $e');
       throw Exception('Network error: $e');
     }
   }
 
-  // ✅ Handle response
+  // ── MULTIPART POST ────────────────────────────────────
+  // ✅ NEW: Sends form fields + optional image file as multipart/form-data
+  // Used by CreateEventScreen to upload event image to Cloudinary via backend
+  //
+  // Usage example:
+  //   final result = await _apiClient.postMultipart(
+  //     AppConfig.organizerEventsEndpoint,
+  //     fields: {
+  //       'title': 'My Event',
+  //       'category': 'Music',
+  //       'date': DateTime.now().toIso8601String(),
+  //       // ... all other text fields as strings
+  //     },
+  //     imageFile: _imageFile,   // File? picked from gallery/camera
+  //   );
+  Future<dynamic> postMultipart(
+    String endpoint, {
+    required Map<String, String> fields,
+    File? imageFile,                      // picked image File (null = no image)
+    String fileFieldName = 'image',       // must match multer field name on backend
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final token = requiresAuth ? await _storage.getToken() : null;
+      final url   = Uri.parse('${AppConfig.baseUrl}$endpoint');
+
+      final request = http.MultipartRequest('POST', url);
+
+      // Auth header
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+        print('🔑 Token attached to multipart request');
+      }
+
+      // Text form fields (all values must be String)
+      request.fields.addAll(fields);
+      print('📦 Multipart fields: $fields');
+
+      // Image file (optional)
+      if (imageFile != null) {
+        final ext      = imageFile.path.split('.').last.toLowerCase();
+        final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+        request.files.add(await http.MultipartFile.fromPath(
+          fileFieldName,
+          imageFile.path,
+          contentType: MediaType.parse(mimeType),
+        ));
+        print('📎 Image attached: ${imageFile.path} ($mimeType)');
+      }
+
+      print('🌐 MULTIPART POST → $url');
+      final streamed = await request.send()
+          .timeout(const Duration(seconds: 60)); // 60s for image uploads
+      final response = await http.Response.fromStream(streamed);
+      print('📥 MULTIPART ${response.statusCode} ← $url');
+      print('📥 Response body → ${response.body}');
+
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ MULTIPART Error: $e');
+      throw Exception('Upload error: $e');
+    }
+  }
+
+  // ── Handle response ───────────────────────────────────
   dynamic _handleResponse(http.Response response) {
+    print('🔵 Status: ${response.statusCode}');
+    print('🔵 Body:   ${response.body}');
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};
       return jsonDecode(response.body);
-    } else {
-      print('❌ Response Error: ${response.statusCode} - ${response.body}');
-      Map<String, dynamic> errorBody = {};
-      try {
-        errorBody = jsonDecode(response.body);
-      } catch (_) {
-        errorBody = {'message': 'Server error: ${response.statusCode}'};
-      }
-      throw Exception(errorBody['message'] ?? 'Request failed with status ${response.statusCode}');
     }
+
+    Map<String, dynamic> errorBody = {};
+    try {
+      errorBody = jsonDecode(response.body);
+    } catch (_) {
+      errorBody = {'message': 'Server error: ${response.statusCode}'};
+    }
+
+    final message = errorBody['message'] ??
+        errorBody['error'] ??
+        'Request failed with status ${response.statusCode}';
+
+    print('❌ API Error ${response.statusCode}: $message');
+    throw Exception('Server error: $message');
   }
 }

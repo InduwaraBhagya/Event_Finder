@@ -1,3 +1,4 @@
+
 class Event {
   final String id;
   final String title;
@@ -20,6 +21,10 @@ class Event {
   final DateTime createdAt;
   double? distance;
 
+  //  NEW: Approval workflow fields
+  final String status;     // 'pending' | 'approved' | 'rejected'
+  final String adminNote;  // Admin rejection reason — shown to organizer
+
   Event({
     required this.id,
     required this.title,
@@ -36,18 +41,19 @@ class Event {
     required this.price,
     required this.totalSeats,
     required this.availableSeats,
-    this.isFeatured = false,
+    this.isFeatured  = false,
     this.rating,
     this.reviewCount,
     required this.createdAt,
     this.distance,
+    this.status    = 'pending',   
+    this.adminNote = '',          
   });
 
-  // ✅ Normalize category names from database to match UI filter chips
+  // Normalize category names from database to match UI filter chips
   static String _normalizeCategory(String? raw) {
     if (raw == null || raw.isEmpty) return 'Other';
-    
-    // Map variations → standard names
+
     switch (raw.toLowerCase().trim()) {
       case 'art':
       case 'arts':
@@ -79,51 +85,49 @@ class Event {
       case 'entertainment':
         return 'Entertainment';
       default:
-        return raw; // Keep as-is if no match
+        return raw;
     }
   }
 
   factory Event.fromJson(Map<String, dynamic> json) {
-    // ✅ Handle organizer as object or string
-    String orgId = '';
+    //  Handle organizer as object or string
+    String orgId   = '';
     String orgName = '';
 
     if (json['organizer'] is Map) {
-      orgId = json['organizer']['_id'] ?? json['organizer']['id'] ?? '';
+      orgId   = json['organizer']['_id'] ?? json['organizer']['id'] ?? '';
       orgName = json['organizer']['name'] ?? '';
     } else if (json['organizer'] is String) {
       orgId = json['organizer'];
     }
 
-    // Fallback fields
-    if (orgId.isEmpty) orgId = json['organizerId'] ?? '';
+    if (orgId.isEmpty)   orgId   = json['organizerId']   ?? '';
     if (orgName.isEmpty) orgName = json['organizerName'] ?? 'Unknown Organizer';
 
     return Event(
-      id: json['_id'] ?? json['id'] ?? '',
-      title: json['title'] ?? '',
+      id:          json['_id'] ?? json['id'] ?? '',
+      title:       json['title']       ?? '',
       description: json['description'] ?? '',
-      // ✅ Normalize category to match filter chips
-      category: _normalizeCategory(json['category']),
+      category:    _normalizeCategory(json['category']),
       date: json['date'] != null
           ? DateTime.tryParse(json['date']) ?? DateTime.now()
           : DateTime.now(),
-      time: json['time'] ?? '',
-      location: json['location'] ?? '',
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
-      organizerId: orgId,
+      time:         json['time']     ?? '',
+      location:     json['location'] ?? '',
+      latitude:     (json['latitude']  ?? 0.0).toDouble(),
+      longitude:    (json['longitude'] ?? 0.0).toDouble(),
+      organizerId:  orgId,
       organizerName: orgName,
-      // ✅ Handle images array safely
+      //  Handle images array safely
       images: json['images'] != null
           ? List<String>.from(
-              (json['images'] as List).where((img) => img != null && img.toString().isNotEmpty)
-            )
+              (json['images'] as List)
+                  .where((img) => img != null && img.toString().isNotEmpty))
           : [],
-      price: (json['price'] ?? 0.0).toDouble(),
-      totalSeats: json['totalSeats'] ?? 0,
-      availableSeats: json['availableSeats'] ?? 0,
-      isFeatured: json['isFeatured'] ?? false,
+      price:          (json['price']          ?? 0.0).toDouble(),
+      totalSeats:      json['totalSeats']     ?? 0,
+      availableSeats:  json['availableSeats'] ?? 0,
+      isFeatured:      json['isFeatured']     ?? false,
       rating: json['rating'] != null
           ? (json['rating'] as num).toDouble()
           : null,
@@ -134,69 +138,87 @@ class Event {
       distance: json['distance'] != null
           ? (json['distance'] as num).toDouble()
           : null,
+      //  NEW: parse approval fields
+      status:    json['status']    ?? 'pending',
+      adminNote: json['adminNote'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'title': title,
-      'description': description,
-      'category': category,
-      'date': date.toIso8601String(),
-      'time': time,
-      'location': location,
-      'latitude': latitude,
-      'longitude': longitude,
-      'organizerId': organizerId,
-      'organizerName': organizerName,
-      'images': images,
-      'price': price,
-      'totalSeats': totalSeats,
+      'id':             id,
+      'title':          title,
+      'description':    description,
+      'category':       category,
+      'date':           date.toIso8601String(),
+      'time':           time,
+      'location':       location,
+      'latitude':       latitude,
+      'longitude':      longitude,
+      'organizerId':    organizerId,
+      'organizerName':  organizerName,
+      'images':         images,
+      'price':          price,
+      'totalSeats':     totalSeats,
       'availableSeats': availableSeats,
-      'isFeatured': isFeatured,
-      'rating': rating,
-      'reviewCount': reviewCount,
-      'createdAt': createdAt.toIso8601String(),
-      'distance': distance,
+      'isFeatured':     isFeatured,
+      'rating':         rating,
+      'reviewCount':    reviewCount,
+      'createdAt':      createdAt.toIso8601String(),
+      'distance':       distance,
+      //  NEW
+      'status':         status,
+      'adminNote':      adminNote,
     };
   }
 
   Event copyWith({
-    String? id, String? title, String? description,
-    String? category, DateTime? date, String? time,
-    String? location, double? latitude, double? longitude,
+    String? id,          String? title,       String? description,
+    String? category,    DateTime? date,      String? time,
+    String? location,    double? latitude,    double? longitude,
     String? organizerId, String? organizerName,
     List<String>? images, double? price,
-    int? totalSeats, int? availableSeats, bool? isFeatured,
-    double? rating, int? reviewCount, DateTime? createdAt,
+    int? totalSeats,     int? availableSeats, bool? isFeatured,
+    double? rating,      int? reviewCount,    DateTime? createdAt,
     double? distance,
+    //  NEW
+    String? status,      String? adminNote,
   }) {
     return Event(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      category: category ?? this.category,
-      date: date ?? this.date,
-      time: time ?? this.time,
-      location: location ?? this.location,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      organizerId: organizerId ?? this.organizerId,
-      organizerName: organizerName ?? this.organizerName,
-      images: images ?? this.images,
-      price: price ?? this.price,
-      totalSeats: totalSeats ?? this.totalSeats,
+      id:             id             ?? this.id,
+      title:          title          ?? this.title,
+      description:    description    ?? this.description,
+      category:       category       ?? this.category,
+      date:           date           ?? this.date,
+      time:           time           ?? this.time,
+      location:       location       ?? this.location,
+      latitude:       latitude       ?? this.latitude,
+      longitude:      longitude      ?? this.longitude,
+      organizerId:    organizerId    ?? this.organizerId,
+      organizerName:  organizerName  ?? this.organizerName,
+      images:         images         ?? this.images,
+      price:          price          ?? this.price,
+      totalSeats:     totalSeats     ?? this.totalSeats,
       availableSeats: availableSeats ?? this.availableSeats,
-      isFeatured: isFeatured ?? this.isFeatured,
-      rating: rating ?? this.rating,
-      reviewCount: reviewCount ?? this.reviewCount,
-      createdAt: createdAt ?? this.createdAt,
-      distance: distance ?? this.distance,
+      isFeatured:     isFeatured     ?? this.isFeatured,
+      rating:         rating         ?? this.rating,
+      reviewCount:    reviewCount    ?? this.reviewCount,
+      createdAt:      createdAt      ?? this.createdAt,
+      distance:       distance       ?? this.distance,
+      status:         status         ?? this.status,
+      adminNote:      adminNote      ?? this.adminNote,
     );
   }
 
+  // ── Getters ──────────────────────────────────────────────────
   bool get isAvailable => availableSeats > 0;
-  bool get isFree => price == 0;
-  String get imageUrl => images.isNotEmpty ? images.first : '';
+  bool get isFree      => price == 0;
+
+  /// First image from the images array (Cloudinary URL or empty string)
+  String get imageUrl  => images.isNotEmpty ? images.first : '';
+
+  //  NEW: approval status helpers
+  bool get isPending  => status == 'pending';
+  bool get isApproved => status == 'approved';
+  bool get isRejected => status == 'rejected';
 }
