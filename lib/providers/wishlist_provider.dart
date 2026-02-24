@@ -1,66 +1,93 @@
+// FILE: lib/providers/wishlist_provider.dart
+
 import 'package:flutter/material.dart';
 import 'package:event_finder/models/event_model.dart';
 import 'package:event_finder/services/api_client.dart';
 import 'package:event_finder/config/app_config.dart';
 
 class WishlistProvider with ChangeNotifier {
-  final ApiClient _apiClient = ApiClient();
+  // ✅ FIX: ApiClient uses instance methods, not static
+  // Create one instance and reuse it for all calls
+  final _api = ApiClient();
 
-  List<Event> _wishlistEvents = [];
-  bool _isLoading = false;
+  List<Event>               _wishlistEvents  = [];
+  final Map<String, String> _wishlistItemIds = {};  // eventId → wishlistItemId
+
+  bool    _isLoading    = false;
   String? _errorMessage;
 
-  List<Event> get wishlistEvents => _wishlistEvents;
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  List<Event> get wishlistEvents  => _wishlistEvents;
+  bool        get isLoading       => _isLoading;
+  String?     get errorMessage    => _errorMessage;
 
-  //  Check if event is in wishlist
-  bool isInWishlist(String eventId) {
-    return _wishlistEvents.any((event) => event.id == eventId);
-  }
+  bool isInWishlist(String eventId) =>
+      _wishlistEvents.any((e) => e.id == eventId);
 
-  //  Fetch wishlist - handles "wishlist" key from backend
+  // ══════════════════════════════════════════════════════
+  // FETCH WISHLIST
+  // Backend returns:
+  //   { data: [ { _id: "wishlistItemId", event: { _id, title, ... } } ] }
+  // ══════════════════════════════════════════════════════
   Future<void> fetchWishlist() async {
-    _isLoading = true;
+    _isLoading    = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await _apiClient.get(
+      final response = await _api.get(               // ✅ instance call
         AppConfig.wishlistEndpoint,
-        requiresAuth: true, 
+        requiresAuth: true,
       );
 
-      print('📥 WishlistProvider: ${response?.keys?.toList()}');
+      debugPrint('📥 WishlistProvider keys: ${response?.keys?.toList()}');
 
       if (response == null) {
         _wishlistEvents = [];
         return;
       }
 
-      //  Backend returns "wishlist" key (array of events)
-      final List<dynamic>? list =
-          response['wishlist'] ?? response['data'] ?? response['events'];
+      final List<dynamic>? items =
+          response['data'] ?? response['wishlist'] ?? response['events'];
 
-      if (list != null) {
-        _wishlistEvents = list
-            .where((item) => item != null)
-            .map((json) => Event.fromJson(json as Map<String, dynamic>))
-            .toList();
-        print(' WishlistProvider: ${_wishlistEvents.length} events loaded');
+      if (items != null) {
+        _wishlistEvents = [];
+        _wishlistItemIds.clear();
+
+        for (final item in items) {
+          if (item == null) continue;
+
+          final eventJson = item['event'] as Map<String, dynamic>?;
+          if (eventJson == null) continue;
+
+          try {
+            final event = Event.fromJson(eventJson);
+            _wishlistEvents.add(event);
+
+            final wishlistItemId = item['_id']?.toString() ?? '';
+            if (wishlistItemId.isNotEmpty) {
+              _wishlistItemIds[event.id] = wishlistItemId;
+            }
+          } catch (e) {
+            debugPrint('⚠️  Failed to parse wishlist event: $e');
+          }
+        }
+
+        debugPrint('✅ Wishlist: ${_wishlistEvents.length} events loaded');
       } else {
         _wishlistEvents = [];
       }
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      print(' WishlistProvider fetchWishlist: $_errorMessage');
+      debugPrint('❌ fetchWishlist: $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  //  Add to wishlist with optimistic update
+  // ══════════════════════════════════════════════════════
+  // ADD TO WISHLIST
+  // ══════════════════════════════════════════════════════
   Future<bool> addToWishlist(Event event) async {
     // Optimistic add
     if (!isInWishlist(event.id)) {
@@ -69,53 +96,76 @@ class WishlistProvider with ChangeNotifier {
     }
 
     try {
-      await _apiClient.post(
+      final response = await _api.post(              // ✅ instance call
         AppConfig.wishlistEndpoint,
         {'eventId': event.id},
         requiresAuth: true,
       );
-      print(' WishlistProvider: Added ${event.title}');
-      return true;
-    } catch (e) {
-      // Rollback optimistic add on error
-      _wishlistEvents.removeWhere((e) => e.id == event.id);
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
-      print(' WishlistProvider addToWishlist: $_errorMessage');
-      return false;
-    }
-  }
 
-  //  Remove from wishlist with optimistic update
-  Future<bool> removeFromWishlist(String eventId) async {
-    // Save for rollback
-    final removed = _wishlistEvents.firstWhere(
-      (e) => e.id == eventId,
-      orElse: () => throw Exception('Not found'),
-    );
+      final newItemId = response?['data']?['_id']?.toString() ?? '';
+      if (newItemId.isNotEmpty) {
+        _wishlistItemIds[event.id] = newItemId;
+      }
 
-    // Optimistic remove
-    _wishlistEvents.removeWhere((e) => e.id == eventId);
-    notifyListeners();
-
-    try {
-      await _apiClient.delete(
-        '${AppConfig.wishlistEndpoint}/$eventId',
-        requiresAuth: true,
-      );
-      print(' WishlistProvider: Removed $eventId');
+      debugPrint('✅ Added to wishlist: ${event.title} | itemId: $newItemId');
       return true;
     } catch (e) {
       // Rollback on error
-      _wishlistEvents.insert(0, removed);
+      _wishlistEvents.removeWhere((ev) => ev.id == event.id);
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
-      print(' WishlistProvider removeFromWishlist: $_errorMessage');
+      debugPrint('❌ addToWishlist: $_errorMessage');
       return false;
     }
   }
 
-  // Toggle wishlist (add or remove)
+  // ══════════════════════════════════════════════════════
+  // REMOVE FROM WISHLIST
+  // ══════════════════════════════════════════════════════
+  Future<bool> removeFromWishlist(String eventId) async {
+    Event? removed;
+    try {
+      removed = _wishlistEvents.firstWhere((e) => e.id == eventId);
+    } catch (_) {
+      return false;
+    }
+
+    final wishlistItemId = _wishlistItemIds[eventId] ?? '';
+
+    // Optimistic remove
+    _wishlistEvents.removeWhere((e) => e.id == eventId);
+    _wishlistItemIds.remove(eventId);
+    notifyListeners();
+
+    try {
+      if (wishlistItemId.isNotEmpty) {
+        await _api.delete(                           // ✅ instance call
+          '${AppConfig.wishlistEndpoint}/$wishlistItemId',
+          requiresAuth: true,
+        );
+      } else {
+        await _api.delete(                           // ✅ instance call
+          '${AppConfig.wishlistEndpoint}/$eventId',
+          requiresAuth: true,
+        );
+      }
+
+      debugPrint('✅ Removed from wishlist: $eventId');
+      return true;
+    } catch (e) {
+      // Rollback on error
+      _wishlistEvents.insert(0, removed!);
+      _wishlistItemIds[eventId] = wishlistItemId;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      debugPrint('❌ removeFromWishlist: $_errorMessage');
+      return false;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // TOGGLE WISHLIST
+  // ══════════════════════════════════════════════════════
   Future<bool> toggleWishlist(Event event) async {
     if (isInWishlist(event.id)) {
       return removeFromWishlist(event.id);

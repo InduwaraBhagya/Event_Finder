@@ -148,14 +148,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 10),
                           
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {},
-                              child: const Text("Forgot Password?", style: TextStyle(color: Colors.grey)),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                          //Align(
+                           //// alignment: Alignment.centerRight,
+                            //child: TextButton(
+                              //onPressed: () {},
+                             // child: const Text("Forgot Password?", style: TextStyle(color: Colors.grey)),
+                           // ),
+                          //),
+                          //const SizedBox(height: 20),
                           
                           // Animated Login Button
                           Consumer<AuthProvider>(
@@ -227,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 20),
         const Text(
-          'EventFinder',
+          'Eventra',
           style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
         ),
         const Text(
