@@ -117,14 +117,24 @@ class _OrganizerHomeScreenState extends State<OrganizerHomeScreen> {
                 ),
               ),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                tooltip: 'Logout',
-                onPressed: () async => await authProvider.logout(),
-              ),
-            ],
+          actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.white),
+            tooltip: 'Logout',
+            onPressed: () async {
+              await authProvider.logout();
+
+              if (mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',   // make sure this route exists
+                  (route) => false,
+                );
+              }
+            },
           ),
+        ],
+                  ),
 
           // ── Content ───────────────────────────────────
           Consumer<EventProvider>(
