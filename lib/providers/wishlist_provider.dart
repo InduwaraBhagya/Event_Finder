@@ -14,12 +14,12 @@ class WishlistProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // ✅ Check if event is in wishlist
+  //  Check if event is in wishlist
   bool isInWishlist(String eventId) {
     return _wishlistEvents.any((event) => event.id == eventId);
   }
 
-  // ✅ Fetch wishlist - handles "wishlist" key from backend
+  //  Fetch wishlist - handles "wishlist" key from backend
   Future<void> fetchWishlist() async {
     _isLoading = true;
     _errorMessage = null;
@@ -28,7 +28,7 @@ class WishlistProvider with ChangeNotifier {
     try {
       final response = await _apiClient.get(
         AppConfig.wishlistEndpoint,
-        requiresAuth: true, // ✅ wishlist needs auth
+        requiresAuth: true, 
       );
 
       print('📥 WishlistProvider: ${response?.keys?.toList()}');
@@ -38,7 +38,7 @@ class WishlistProvider with ChangeNotifier {
         return;
       }
 
-      // ✅ Backend returns "wishlist" key (array of events)
+      //  Backend returns "wishlist" key (array of events)
       final List<dynamic>? list =
           response['wishlist'] ?? response['data'] ?? response['events'];
 
@@ -47,20 +47,20 @@ class WishlistProvider with ChangeNotifier {
             .where((item) => item != null)
             .map((json) => Event.fromJson(json as Map<String, dynamic>))
             .toList();
-        print('✅ WishlistProvider: ${_wishlistEvents.length} events loaded');
+        print(' WishlistProvider: ${_wishlistEvents.length} events loaded');
       } else {
         _wishlistEvents = [];
       }
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      print('❌ WishlistProvider fetchWishlist: $_errorMessage');
+      print(' WishlistProvider fetchWishlist: $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // ✅ Add to wishlist with optimistic update
+  //  Add to wishlist with optimistic update
   Future<bool> addToWishlist(Event event) async {
     // Optimistic add
     if (!isInWishlist(event.id)) {
@@ -74,19 +74,19 @@ class WishlistProvider with ChangeNotifier {
         {'eventId': event.id},
         requiresAuth: true,
       );
-      print('✅ WishlistProvider: Added ${event.title}');
+      print(' WishlistProvider: Added ${event.title}');
       return true;
     } catch (e) {
       // Rollback optimistic add on error
       _wishlistEvents.removeWhere((e) => e.id == event.id);
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
-      print('❌ WishlistProvider addToWishlist: $_errorMessage');
+      print(' WishlistProvider addToWishlist: $_errorMessage');
       return false;
     }
   }
 
-  // ✅ Remove from wishlist with optimistic update
+  //  Remove from wishlist with optimistic update
   Future<bool> removeFromWishlist(String eventId) async {
     // Save for rollback
     final removed = _wishlistEvents.firstWhere(
@@ -103,19 +103,19 @@ class WishlistProvider with ChangeNotifier {
         '${AppConfig.wishlistEndpoint}/$eventId',
         requiresAuth: true,
       );
-      print('✅ WishlistProvider: Removed $eventId');
+      print(' WishlistProvider: Removed $eventId');
       return true;
     } catch (e) {
       // Rollback on error
       _wishlistEvents.insert(0, removed);
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
-      print('❌ WishlistProvider removeFromWishlist: $_errorMessage');
+      print(' WishlistProvider removeFromWishlist: $_errorMessage');
       return false;
     }
   }
 
-  // ✅ Toggle wishlist (add or remove)
+  // Toggle wishlist (add or remove)
   Future<bool> toggleWishlist(Event event) async {
     if (isInWishlist(event.id)) {
       return removeFromWishlist(event.id);

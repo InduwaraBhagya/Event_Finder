@@ -171,7 +171,7 @@ class LocationProvider with ChangeNotifier {
 
     try {
       await _eventService.createEvent(eventData);
-      await fetchEvents(); // Refresh the list
+      await fetchEvents(); 
       _isLoading = false;
       notifyListeners();
       return true;
@@ -191,7 +191,7 @@ class LocationProvider with ChangeNotifier {
 
     try {
       await _eventService.updateEvent(id, eventData);
-      await fetchEvents(); // Refresh the list
+      await fetchEvents(); 
       _isLoading = false;
       notifyListeners();
       return true;

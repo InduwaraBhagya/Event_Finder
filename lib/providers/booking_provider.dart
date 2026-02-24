@@ -14,7 +14,7 @@ class BookingProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // ✅ Fetch user's bookings (requires auth token)
+  //  Fetch user's bookings (requires auth token)
   Future<void> fetchBookings() async {
     _isLoading = true;
     _errorMessage = null;
@@ -23,7 +23,7 @@ class BookingProvider with ChangeNotifier {
     try {
       final response = await _apiClient.get(
         AppConfig.bookingsEndpoint,
-        requiresAuth: true, // ✅ bookings need auth
+        requiresAuth: true, 
       );
 
       print('📥 BookingProvider fetchBookings: ${response?.keys?.toList()}');
@@ -33,7 +33,7 @@ class BookingProvider with ChangeNotifier {
         return;
       }
 
-      // ✅ Handle both "bookings" and "data" response keys
+      // Handle both "bookings" and "data" response keys
       List<dynamic>? list =
           response['bookings'] ?? response['data'];
 
@@ -41,7 +41,7 @@ class BookingProvider with ChangeNotifier {
         _bookings = list
             .map((json) => Booking.fromJson(json))
             .toList();
-        print('✅ BookingProvider: Loaded ${_bookings.length} bookings');
+        print(' BookingProvider: Loaded ${_bookings.length} bookings');
       } else {
         _bookings = [];
       }
@@ -54,14 +54,14 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Create a booking
+  // Create a booking
   Future<bool> createBooking(String eventId, int numberOfSeats) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      print('📡 BookingProvider: Creating booking for event $eventId, seats=$numberOfSeats');
+      print(' BookingProvider: Creating booking for event $eventId, seats=$numberOfSeats');
 
       final response = await _apiClient.post(
         AppConfig.bookingsEndpoint,
@@ -69,20 +69,20 @@ class BookingProvider with ChangeNotifier {
           'eventId': eventId,
           'numberOfSeats': numberOfSeats,
         },
-        requiresAuth: true, // ✅ requires login
+        requiresAuth: true, //  requires login
       );
 
       print('📥 BookingProvider createBooking response: ${response?.keys?.toList()}');
 
       if (response == null) return false;
 
-      // ✅ Handle both "booking" and "data" response keys
+      // Handle both "booking" and "data" response keys
       final bookingData = response['booking'] ?? response['data'];
 
       if (bookingData != null) {
         final newBooking = Booking.fromJson(bookingData);
         _bookings.insert(0, newBooking); // Add to top of list
-        print('✅ BookingProvider: Booking created! ID=${newBooking.id}');
+        print(' BookingProvider: Booking created! ID=${newBooking.id}');
         return true;
       }
 
@@ -95,7 +95,7 @@ class BookingProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      print('❌ BookingProvider createBooking: $_errorMessage');
+      print(' BookingProvider createBooking: $_errorMessage');
       return false;
     } finally {
       _isLoading = false;
@@ -103,7 +103,7 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Cancel a booking
+  //  Cancel a booking
   Future<bool> cancelBooking(String bookingId) async {
     _isLoading = true;
     _errorMessage = null;
@@ -121,11 +121,11 @@ class BookingProvider with ChangeNotifier {
         _bookings[index] = _bookings[index].copyWith(status: 'cancelled');
       }
 
-      print('✅ BookingProvider: Booking $bookingId cancelled');
+      print(' BookingProvider: Booking $bookingId cancelled');
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      print('❌ BookingProvider cancelBooking: $_errorMessage');
+      print(' BookingProvider cancelBooking: $_errorMessage');
       return false;
     } finally {
       _isLoading = false;

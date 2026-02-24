@@ -7,7 +7,7 @@ class Booking {
   final Event? event;
   final int numberOfSeats;
   final double totalPrice;
-  final String status; // 'pending', 'confirmed', 'cancelled'
+  final String status; 
   final DateTime bookingDate;
   final String? paymentId;
   final String? qrCode;

@@ -1,7 +1,3 @@
-// ============================================================
-// FILE: lib/screens/admin/admin_home_screen.dart
-// Admin dashboard with Approve / Reject workflow
-// ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -66,7 +62,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  // ── Approve an event ──────────────────────────────────────────
+  // ── Approve an event 
   Future<void> _approveEvent(Event event) async {
     final confirm = await _showConfirmDialog(
       title: 'Approve Event',
@@ -107,7 +103,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  // ── Delete an event ───────────────────────────────────────────
+  // ── Delete an event 
   Future<void> _deleteEvent(Event event) async {
     final confirm = await _showConfirmDialog(
       title: 'Delete Event',
@@ -137,7 +133,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       backgroundColor: const Color(0xFFF4F6FA),
       body: CustomScrollView(
         slivers: [
-          // ── Header ──────────────────────────────────────────
+          // ── Header 
           SliverAppBar(
             pinned: true,
             expandedHeight: 160,
@@ -214,7 +210,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             ),
           ),
 
-          // ── Stats row ────────────────────────────────────────
+          // ── Stats row 
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -228,7 +224,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             ),
           ),
 
-          // ── Tab content ──────────────────────────────────────
+          // ── Tab content
           SliverFillRemaining(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(
@@ -247,7 +243,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ── Pending tab ───────────────────────────────────────────────
+  // ── Pending tab 
   Widget _buildPendingList() {
     if (_pendingEvents.isEmpty) {
       return _emptyState(
@@ -269,7 +265,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ── Approved tab ──────────────────────────────────────────────
+  // ── Approved tab 
   Widget _buildApprovedList() {
     if (_approvedEvents.isEmpty) {
       return _emptyState(
@@ -289,7 +285,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ── Rejected tab ──────────────────────────────────────────────
+ 
   Widget _buildRejectedList() {
     if (_rejectedEvents.isEmpty) {
       return _emptyState(
@@ -309,7 +305,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────
+  // Helpers
   Widget _countBadge(int count, Color color) {
     if (count == 0) return const SizedBox.shrink();
     return Container(
@@ -455,14 +451,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-// Card mode enum
-// ════════════════════════════════════════════════════════════════
 enum CardMode { pending, approved, rejected }
 
-// ════════════════════════════════════════════════════════════════
-// _AdminEventCard
-// ════════════════════════════════════════════════════════════════
 class _AdminEventCard extends StatelessWidget {
   const _AdminEventCard({
     required this.event,

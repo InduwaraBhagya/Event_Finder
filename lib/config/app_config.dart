@@ -2,14 +2,14 @@ class AppConfig {
   static const String appName = 'Event Finder';
   static const String appVersion = '1.0.0';
 
-  // ── API Base URL ──────────────────────────────────────
+  //API Base URL 
   static const String baseUrl = 'https://evete-finder-backend.vercel.app/api';
   // For iOS Simulator: 'http://localhost:3000/api'
   // For Android Emulator: 'http://10.0.2.2:3000/api'
 
   static const String apiVersion = 'v1';
 
-  // ── API Endpoints ─────────────────────────────────────
+  // API Endpoints 
   static const String loginEndpoint             = '/auth/login';
   static const String registerEndpoint          = '/auth/register';
   static const String eventsEndpoint            = '/events';

@@ -21,9 +21,8 @@ class Event {
   final DateTime createdAt;
   double? distance;
 
-  //  NEW: Approval workflow fields
-  final String status;     // 'pending' | 'approved' | 'rejected'
-  final String adminNote;  // Admin rejection reason — shown to organizer
+  final String status;     
+  final String adminNote;  
 
   Event({
     required this.id,
@@ -166,7 +165,6 @@ class Event {
       'reviewCount':    reviewCount,
       'createdAt':      createdAt.toIso8601String(),
       'distance':       distance,
-      //  NEW
       'status':         status,
       'adminNote':      adminNote,
     };
@@ -181,7 +179,6 @@ class Event {
     int? totalSeats,     int? availableSeats, bool? isFeatured,
     double? rating,      int? reviewCount,    DateTime? createdAt,
     double? distance,
-    //  NEW
     String? status,      String? adminNote,
   }) {
     return Event(
@@ -210,14 +207,13 @@ class Event {
     );
   }
 
-  // ── Getters ──────────────────────────────────────────────────
+  //Getters 
   bool get isAvailable => availableSeats > 0;
   bool get isFree      => price == 0;
 
   /// First image from the images array (Cloudinary URL or empty string)
   String get imageUrl  => images.isNotEmpty ? images.first : '';
 
-  //  NEW: approval status helpers
   bool get isPending  => status == 'pending';
   bool get isApproved => status == 'approved';
   bool get isRejected => status == 'rejected';

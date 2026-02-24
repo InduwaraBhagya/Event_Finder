@@ -14,7 +14,7 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _user != null;
-  bool get isAuthenticated => _user != null; // ADD THIS
+  bool get isAuthenticated => _user != null; 
   bool get isAdmin => _user?.isAdmin ?? false;
   bool get isOrganizer => _user?.isOrganizer ?? false;
   bool get isUser => _user?.isUser ?? false;
@@ -28,7 +28,7 @@ class AuthProvider with ChangeNotifier {
       _user = await _authService.getCurrentUser();
     } catch (e) {
       _errorMessage = e.toString();
-      print('❌ Init Error: $_errorMessage');
+      print(' Init Error: $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -44,7 +44,7 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.login(email, password);
 
-      print('🔐 Login Result: $result'); // Debug log
+      print(' Login Result: $result'); // Debug log
 
       if (result['success'] == true) {
         _user = result['user'];
@@ -64,7 +64,7 @@ class AuthProvider with ChangeNotifier {
       _user = null;
       _isLoading = false;
       notifyListeners();
-      print('❌ Login Provider Error: $_errorMessage');
+      print(' Login Provider Error: $_errorMessage');
       return false;
     }
   }
@@ -83,7 +83,7 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.register(name, email, password, role);
 
-      print('📝 Register Result: $result'); // Debug log
+      print(' Register Result: $result'); 
 
       if (result['success'] == true) {
         _errorMessage = null;
@@ -116,7 +116,7 @@ class AuthProvider with ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       _errorMessage = e.toString();
-      print('❌ Logout Error: $_errorMessage');
+      print(' Logout Error: $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();

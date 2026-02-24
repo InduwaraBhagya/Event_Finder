@@ -18,7 +18,7 @@ class EventProvider with ChangeNotifier {
   DateTime? _selectedDate;
   double? _selectedDistance;
 
-  // ── Getters ───────────────────────────────────────────
+  //  Getters 
   List<Event> get events => _isFiltered ? _filteredEvents : _events;
   List<Event> get featuredEvents => _featuredEvents;
   Event? get selectedEvent => _selectedEvent;
@@ -28,7 +28,7 @@ class EventProvider with ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   double? get selectedDistance => _selectedDistance;
 
-  // ── Fetch all events ──────────────────────────────────
+  // Fetch all events 
   Future<void> fetchEvents({
     String? category,
     DateTime? date,
@@ -36,14 +36,14 @@ class EventProvider with ChangeNotifier {
     double? userLat,
     double? userLng,
   }) async {
-    print('🔄 EventProvider: fetchEvents called');
+    print(' EventProvider: fetchEvents called');
     _isLoading = true;
     _errorMessage = null;
     _isFiltered = false;
     notifyListeners();
 
     try {
-      print('📡 EventProvider: Calling EventService.getEvents()');
+      print(' EventProvider: Calling EventService.getEvents()');
       _events = await _eventService.getEvents(
         category: category,
         date: date,
@@ -51,10 +51,10 @@ class EventProvider with ChangeNotifier {
         userLat: userLat,
         userLng: userLng,
       );
-      print('✅ EventProvider: Got ${_events.length} events');
+      print(' EventProvider: Got ${_events.length} events');
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      print('❌ EventProvider: Error = $_errorMessage');
+      print(' EventProvider: Error = $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -62,7 +62,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ── Fetch featured events ─────────────────────────────
+  // Fetch featured events 
   Future<void> fetchFeaturedEvents() async {
     try {
       _featuredEvents = await _eventService.getFeaturedEvents();
@@ -73,7 +73,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ── Search events ─────────────────────────────────────
+  //  Search events 
   Future<void> searchEvents(String query) async {
     if (query.isEmpty) {
       clearFilters();
@@ -95,7 +95,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ── Get event by ID ───────────────────────────────────
+  //Get event by ID 
   Future<void> fetchEventById(String id) async {
     _isLoading = true;
     notifyListeners();
@@ -110,7 +110,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ── Filter by category ────────────────────────────────
+  //  Filter by category 
   void filterByCategory(String? category) {
     _selectedCategory = category;
     if (category == null) {
@@ -125,7 +125,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Filter by date ────────────────────────────────────
+  // Filter by date 
   void filterByDate(DateTime? date) {
     _selectedDate = date;
     if (date == null) {
@@ -142,7 +142,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Filter by distance ────────────────────────────────
+  //  Filter by distance 
   void filterByDistance(double? distance) {
     _selectedDistance = distance;
     if (distance == null) {
@@ -161,7 +161,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Clear all filters ─────────────────────────────────
+  // Clear all filters 
   void clearFilters() {
     _selectedCategory = null;
     _selectedDate = null;
@@ -171,13 +171,13 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Clear error ───────────────────────────────────────
+  //  Clear error
   void clearError() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  // ── Create event ──────────────────────────────────────
+  // Create event 
   Future<bool> createEvent(Map<String, dynamic> eventData) async {
     _isLoading = true;
     _errorMessage = null;
@@ -185,7 +185,7 @@ class EventProvider with ChangeNotifier {
 
     try {
       await _eventService.createEvent(eventData);
-      await fetchEvents(); // Refresh list
+      await fetchEvents(); 
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -196,9 +196,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ── Update event ──────────────────────────────────────
-  // Works for both full update (edit screen) and
-  // partial update (e.g. toggle isFeatured from admin)
+  //  Update event 
   Future<bool> updateEvent(String id, Map<String, dynamic> eventData) async {
     _isLoading = true;
     _errorMessage = null;
@@ -207,8 +205,6 @@ class EventProvider with ChangeNotifier {
     try {
       await _eventService.updateEvent(id, eventData);
 
-      // ✅ Optimistically update local list so UI reflects
-      // the change instantly without a full re-fetch
       final index = _events.indexWhere((e) => e.id == id);
       if (index != -1) {
         final existing = _events[index];
@@ -244,7 +240,7 @@ class EventProvider with ChangeNotifier {
     }
   }
 
-  // ── Delete event ──────────────────────────────────────
+  //  Delete event 
   Future<bool> deleteEvent(String id) async {
     _isLoading = true;
     _errorMessage = null;
@@ -253,7 +249,7 @@ class EventProvider with ChangeNotifier {
     try {
       await _eventService.deleteEvent(id);
 
-      // ✅ Remove from both lists immediately
+      //  Remove from both lists immediately
       _events.removeWhere((event) => event.id == id);
       _filteredEvents.removeWhere((event) => event.id == id);
 
