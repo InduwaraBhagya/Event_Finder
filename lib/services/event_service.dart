@@ -5,7 +5,7 @@ import 'package:event_finder/services/api_client.dart';
 class EventService {
   final ApiClient _apiClient = ApiClient();
 
-  // ✅ Get all events
+  // Get all events
   Future<List<Event>> getEvents({
     String? category,
     DateTime? date,
@@ -27,45 +27,44 @@ class EventService {
         endpoint += '?${queryParams.join('&')}';
       }
 
-      print('🌐 EventService: GET ${AppConfig.baseUrl}$endpoint');
+      print('EventService: GET ${AppConfig.baseUrl}$endpoint');
 
       final response = await _apiClient.get(
         endpoint,
-        requiresAuth: false, // ✅ events are public
+        requiresAuth: false, 
       );
 
-      print('📥 EventService raw response keys: ${response?.keys?.toList()}');
+      print('EventService raw response keys: ${response?.keys?.toList()}');
 
       if (response == null) return [];
 
-      // ✅ YOUR BACKEND returns "data" key (not "events")
-      // Response format: { "message": "...", "status": 200, "data": [...] }
+      
       List<dynamic>? eventsList;
 
       if (response['data'] != null) {
-        // ✅ Your current Vercel backend format
+        //Your current Vercel backend format
         eventsList = response['data'] as List;
-        print('✅ Found events in "data" key: ${eventsList.length}');
+        print('Found events in "data" key: ${eventsList.length}');
       } else if (response['events'] != null) {
         // Fallback: original backend format
         eventsList = response['events'] as List;
-        print('✅ Found events in "events" key: ${eventsList.length}');
+        print('Found events in "events" key: ${eventsList.length}');
       } else {
-        print('⚠️ No events found in response. Keys: ${response.keys.toList()}');
+        print(' No events found in response. Keys: ${response.keys.toList()}');
         return [];
       }
 
       final events = eventsList.map((json) => Event.fromJson(json)).toList();
-      print('✅ Parsed ${events.length} events successfully');
+      print(' Parsed ${events.length} events successfully');
       return events;
 
     } catch (e) {
-      print('❌ EventService.getEvents error: $e');
+      print(' EventService.getEvents error: $e');
       throw Exception('Failed to fetch events: ${e.toString()}');
     }
   }
 
-  // ✅ Get featured events
+  //  Get featured events
   Future<List<Event>> getFeaturedEvents() async {
     try {
       final response = await _apiClient.get(
@@ -82,12 +81,12 @@ class EventService {
       return eventsList.map((json) => Event.fromJson(json)).toList();
 
     } catch (e) {
-      print('❌ EventService.getFeaturedEvents error: $e');
+      print(' EventService.getFeaturedEvents error: $e');
       throw Exception('Failed to fetch featured events: ${e.toString()}');
     }
   }
 
-  // ✅ Get single event by ID
+  //  Get single event by ID
   Future<Event> getEventById(String id) async {
     try {
       final response = await _apiClient.get(
@@ -104,12 +103,12 @@ class EventService {
       return Event.fromJson(eventData);
 
     } catch (e) {
-      print('❌ EventService.getEventById error: $e');
+      print(' EventService.getEventById error: $e');
       throw Exception('Failed to fetch event: ${e.toString()}');
     }
   }
 
-  // ✅ Search events
+  //  Search events
   Future<List<Event>> searchEvents(String query) async {
     try {
       final response = await _apiClient.get(
@@ -126,12 +125,12 @@ class EventService {
       return eventsList.map((json) => Event.fromJson(json)).toList();
 
     } catch (e) {
-      print('❌ EventService.searchEvents error: $e');
+      print(' EventService.searchEvents error: $e');
       throw Exception('Failed to search events: ${e.toString()}');
     }
   }
 
-  // ✅ Create event (organizer - protected)
+  // Create event 
   Future<Event> createEvent(Map<String, dynamic> eventData) async {
     try {
       final response = await _apiClient.post(
@@ -146,7 +145,7 @@ class EventService {
     }
   }
 
-  // ✅ Update event (organizer - protected)
+  // Update event 
   Future<Event> updateEvent(String id, Map<String, dynamic> eventData) async {
     try {
       final response = await _apiClient.put(
@@ -161,7 +160,6 @@ class EventService {
     }
   }
 
-  // ✅ Delete event (organizer - protected)
   Future<void> deleteEvent(String id) async {
     try {
       await _apiClient.delete(
@@ -173,7 +171,6 @@ class EventService {
     }
   }
 
-  // ✅ Get organizer events (protected)
   Future<List<Event>> getOrganizerEvents() async {
     try {
       final response = await _apiClient.get(

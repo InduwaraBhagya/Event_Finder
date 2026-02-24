@@ -23,9 +23,9 @@ class ApiClient {
       final token = await _storage.getToken();
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
-        print('🔑 Token attached: Bearer ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+        print(' Token attached: Bearer ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
       } else {
-        print('⚠️ No token found — request will be unauthenticated');
+        print(' No token found — request will be unauthenticated');
       }
     }
 
@@ -50,7 +50,7 @@ class ApiClient {
       }
 
       final url = Uri.parse(urlString);
-      print('🌐 GET → $url');
+      print(' GET → $url');
 
       final response = await http
           .get(url, headers: headers)
@@ -59,7 +59,7 @@ class ApiClient {
       print('📥 GET ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
-      print('❌ GET Error: $e');
+      print(' GET Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -74,18 +74,18 @@ class ApiClient {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
       final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      print('🌐 POST → $url');
-      print('📦 Body → ${jsonEncode(body)}');
+      print(' POST → $url');
+      print(' Body → ${jsonEncode(body)}');
 
       final response = await http
           .post(url, headers: headers, body: jsonEncode(body))
           .timeout(const Duration(seconds: 30));
 
-      print('📥 POST ${response.statusCode} ← $url');
-      print('📥 Response body → ${response.body}');
+      print(' POST ${response.statusCode} ← $url');
+      print(' Response body → ${response.body}');
       return _handleResponse(response);
     } catch (e) {
-      print('❌ POST Error: $e');
+      print(' POST Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -100,16 +100,16 @@ class ApiClient {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
       final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      print('🌐 PUT → $url');
+      print(' PUT → $url');
 
       final response = await http
           .put(url, headers: headers, body: jsonEncode(body))
           .timeout(const Duration(seconds: 30));
 
-      print('📥 PUT ${response.statusCode} ← $url');
+      print(' PUT ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
-      print('❌ PUT Error: $e');
+      print(' PUT Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -124,16 +124,16 @@ class ApiClient {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
       final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      print('🌐 PATCH → $url');
+      print(' PATCH → $url');
 
       final response = await http
           .patch(url, headers: headers, body: jsonEncode(body))
           .timeout(const Duration(seconds: 30));
 
-      print('📥 PATCH ${response.statusCode} ← $url');
+      print(' PATCH ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
-      print('❌ PATCH Error: $e');
+      print(' PATCH Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -147,16 +147,16 @@ class ApiClient {
       final headers = await _getHeaders(requiresAuth: requiresAuth);
       final url     = Uri.parse('${AppConfig.baseUrl}$endpoint');
 
-      print('🌐 DELETE → $url');
+      print(' DELETE → $url');
 
       final response = await http
           .delete(url, headers: headers)
           .timeout(const Duration(seconds: 30));
 
-      print('📥 DELETE ${response.statusCode} ← $url');
+      print(' DELETE ${response.statusCode} ← $url');
       return _handleResponse(response);
     } catch (e) {
-      print('❌ DELETE Error: $e');
+      print(' DELETE Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -179,8 +179,8 @@ class ApiClient {
   Future<dynamic> postMultipart(
     String endpoint, {
     required Map<String, String> fields,
-    File? imageFile,                      // picked image File (null = no image)
-    String fileFieldName = 'image',       // must match multer field name on backend
+    File? imageFile,                      
+    String fileFieldName = 'image',       
     bool requiresAuth = true,
   }) async {
     try {
@@ -192,12 +192,12 @@ class ApiClient {
       // Auth header
       if (token != null && token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
-        print('🔑 Token attached to multipart request');
+        print('Token attached to multipart request');
       }
 
       // Text form fields (all values must be String)
       request.fields.addAll(fields);
-      print('📦 Multipart fields: $fields');
+      print(' Multipart fields: $fields');
 
       // Image file (optional)
       if (imageFile != null) {
@@ -211,24 +211,24 @@ class ApiClient {
         print('📎 Image attached: ${imageFile.path} ($mimeType)');
       }
 
-      print('🌐 MULTIPART POST → $url');
+      print(' MULTIPART POST → $url');
       final streamed = await request.send()
           .timeout(const Duration(seconds: 60)); // 60s for image uploads
       final response = await http.Response.fromStream(streamed);
-      print('📥 MULTIPART ${response.statusCode} ← $url');
-      print('📥 Response body → ${response.body}');
+      print(' MULTIPART ${response.statusCode} ← $url');
+      print(' Response body → ${response.body}');
 
       return _handleResponse(response);
     } catch (e) {
-      print('❌ MULTIPART Error: $e');
+      print(' MULTIPART Error: $e');
       throw Exception('Upload error: $e');
     }
   }
 
   // ── Handle response ───────────────────────────────────
   dynamic _handleResponse(http.Response response) {
-    print('🔵 Status: ${response.statusCode}');
-    print('🔵 Body:   ${response.body}');
+    print(' Status: ${response.statusCode}');
+    print(' Body:   ${response.body}');
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};
@@ -246,7 +246,7 @@ class ApiClient {
         errorBody['error'] ??
         'Request failed with status ${response.statusCode}';
 
-    print('❌ API Error ${response.statusCode}: $message');
+    print(' API Error ${response.statusCode}: $message');
     throw Exception('Server error: $message');
   }
 }

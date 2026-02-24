@@ -62,8 +62,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
       _catGradients[cat] ?? [const Color(0xFF8360C3), const Color(0xFF2EBF91)];
   Color _primary(String cat) => _gradient(cat).first;
 
-  // ── Get best image URL for event ─────────────────────
-  // Priority: 1) Cloudinary uploaded image  2) Unsplash category fallback
   String _imageUrl(Event event) {
     if (event.imageUrl.isNotEmpty) return event.imageUrl;
     return _categoryImages[event.category] ??
@@ -244,9 +242,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
-  // ══════════════════════════════════════════════════════
-  // CARD
-  // ══════════════════════════════════════════════════════
   Widget _buildCard(Event event, WishlistProvider provider) {
     final gradient = _gradient(event.category);
     final primary  = gradient.first;
@@ -304,7 +299,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
 
             // ── Image ───────────────────────────────────
             Stack(children: [
-              // Event image (real or Unsplash fallback)
+            
               ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(18)),
@@ -337,7 +332,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 ),
               ),
 
-              // Bottom gradient for readability
               Positioned(
                 bottom: 0, left: 0, right: 0,
                 child: ClipRRect(
@@ -359,7 +353,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 ),
               ),
 
-              // Category chip on image (top left)
               Positioned(
                 top: 12, left: 12,
                 child: Container(
@@ -432,7 +425,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                // Full title (below image for multi-line)
                 Text(
                   event.title,
                   style: const TextStyle(
@@ -490,7 +482,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 ]),
                 const SizedBox(height: 14),
 
-                // ✅ VIEW DETAILS BUTTON — restored
+            
                 SizedBox(
                   width: double.infinity,
                   child: DecoratedBox(

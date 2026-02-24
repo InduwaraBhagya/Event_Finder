@@ -19,6 +19,7 @@ import 'package:event_finder/screens/user/wishlist_screen.dart';
 import 'package:event_finder/screens/user/event_list_screen.dart';
 import 'package:event_finder/screens/user/near_me_screen.dart'; 
 //import 'package:event_finder/screens/organizer/analytics_screen.dart';
+
 import 'package:event_finder/utils/app_theme.dart';
 
 void main() async {

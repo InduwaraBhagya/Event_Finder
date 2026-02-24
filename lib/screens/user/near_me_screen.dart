@@ -1,7 +1,3 @@
-// FILE: lib/screens/user/near_me_screen.dart
-// Map shows user location + radius circle + event pin markers
-// Bottom sheet slides up with event cards list
-// Tap any pin or card → event detail screen
 
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -123,9 +119,7 @@ class _NearMeScreenState extends State<NearMeScreen> {
         duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
-  // ════════════════════════════════════════════════════════════
-  // BUILD
-  // ════════════════════════════════════════════════════════════
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -544,9 +538,6 @@ class _NearMeScreenState extends State<NearMeScreen> {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// Event Card widget
-// ════════════════════════════════════════════════════════════
 class _EventCard extends StatelessWidget {
   const _EventCard({
     required this.event,
@@ -671,9 +662,6 @@ class _EventCard extends StatelessWidget {
   }
 }
 
-// ════════════════════════════════════════════════════════════
-// Pin tail painter
-// ════════════════════════════════════════════════════════════
 class _TailPainter extends CustomPainter {
   final Color color;
   const _TailPainter(this.color);

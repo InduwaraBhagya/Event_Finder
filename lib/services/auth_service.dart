@@ -19,9 +19,8 @@ class AuthService {
         requiresAuth: false,
       );
 
-      print('📥 Backend Response: $response'); // Debug log
+      print(' Backend Response: $response'); // Debug log
 
-      // ✅ Backend returns: { message, status, data: { id, name, email, role, token } }
       if (response['status'] == 200 && response['data'] != null) {
         final userData = response['data'];
         
@@ -48,7 +47,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Login Error: $e'); // Debug log
+      print(' Login Error: $e'); // Debug log
       return {
         'success': false,
         'message': e.toString().replaceAll('Exception: ', ''),
@@ -75,13 +74,12 @@ class AuthService {
         requiresAuth: false,
       );
 
-      print('📥 Register Response: $response'); // Debug log
+      print('📥 Register Response: $response'); 
 
-      // ✅ Backend returns: { message, status, data: { id, name, email, role, token } }
       if (response['status'] == 201 && response['data'] != null) {
         final userData = response['data'];
         
-        // Save token
+      
         if (userData['token'] != null) {
           await _storage.saveToken(userData['token']);
         }
@@ -103,7 +101,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Register Error: $e'); // Debug log
+      print(' Register Error: $e'); // Debug log
       return {
         'success': false,
         'message': e.toString().replaceAll('Exception: ', ''),
@@ -116,7 +114,7 @@ class AuthService {
     try {
       await _storage.clearAll();
     } catch (e) {
-      print('❌ Logout Error: $e');
+      print(' Logout Error: $e');
       await _storage.clearAll();
     }
   }

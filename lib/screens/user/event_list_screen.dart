@@ -85,7 +85,7 @@ class _EventListScreenState extends State<EventListScreen> {
     }
   }
 
-  // ✅ Get image URL with category-based fallback
+  //  Get image URL with category-based fallback
   String _getEventImageUrl(Event event) {
     // If event has an image URL, use it
     if (event.imageUrl.isNotEmpty && 
@@ -325,7 +325,7 @@ class _EventListScreenState extends State<EventListScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ✅ Hero Image with proper error handling
+                  //  Hero Image with proper error handling
                   _buildHeroImage(event),
 
                   // Event Info

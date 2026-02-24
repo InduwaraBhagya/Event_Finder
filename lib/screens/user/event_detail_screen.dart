@@ -20,7 +20,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   int _selectedSeats = 1;
   Event get event => widget.event;
 
-  // ✅ Category-based placeholder images (same as event list)
+  //  Category-based placeholder images (same as event list)
   final Map<String, String> _categoryImages = {
     'Technology': 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&q=80',
     'Music': 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&q=80',
@@ -34,7 +34,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     'Other': 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80',
   };
 
-  // ✅ Get image URL with fallback
+  // Get image URL with fallback
   String _getEventImageUrl() {
     if (event.imageUrl.isNotEmpty && 
         !event.imageUrl.contains('placeholder')) {
@@ -62,7 +62,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _bookEvent() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // ✅ Check login using isLoggedIn (NOT isAuthenticated)
+    //  Check login using isLoggedIn (NOT isAuthenticated)
     if (!authProvider.isLoggedIn) {
       _showSnack('Please login to book events', isError: true);
       return;
@@ -232,7 +232,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // ✅ Image with proper error handling
+                  //  Image with proper error handling
                   Image.network(
                     _getEventImageUrl(),
                     fit: BoxFit.cover,
@@ -262,7 +262,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       );
                     },
                   ),
-                  // Dark gradient overlay
+                  
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -291,7 +291,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ),
             ),
             actions: [
-              // ❤️ Wishlist heart button
+             
               Consumer<WishlistProvider>(
                 builder: (ctx, wishlistProvider, _) {
                   final isWishlisted =

@@ -38,7 +38,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     if (mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/login',
-        (route) => false, // ✅ removes ALL routes so back button won't work
+        (route) => false, 
       );
     }
   }
@@ -57,13 +57,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx), // ✅ Cancel — stays on home
+            onPressed: () => Navigator.pop(ctx), 
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(ctx);   // close dialog first
-              _logout();            // ✅ then redirect to login
+              Navigator.pop(ctx);   
+              _logout();            
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -178,7 +178,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                               ),
                               const SizedBox(height: 16),
 
-                              // ✅ Search bar — HOME only (not in Browse Events)
                               Container(
                                 height: 46,
                                 decoration: BoxDecoration(
@@ -215,7 +214,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                                       ),
                                     ),
                                   ),
-                                  // ✅ X button — only shown while typing
+                               
                                   if (_searchQuery.isNotEmpty)
                                     GestureDetector(
                                       onTap: () {
@@ -242,7 +241,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   ),
                 ),
                 actions: [
-                  // ✅ Logout icon — shows confirmation then redirects to /login
+                  
                   IconButton(
                     icon: const Icon(Icons.logout_rounded, color: Colors.white),
                     tooltip: 'Logout',
@@ -337,7 +336,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                           childAspectRatio: 1.2,
                           physics: const NeverScrollableScrollPhysics(),
                           children: [
-                            // ✅ Browse Events — goes to /events (no search bar there)
+                          
                             _actionCard(
                               icon: Icons.event_available_rounded,
                               label: 'Browse Events',

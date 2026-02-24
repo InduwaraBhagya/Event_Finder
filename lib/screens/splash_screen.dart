@@ -83,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 30),
             // App Name
             Text(
-              'Event Finder',
+              'Eventra',
               style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
