@@ -13,20 +13,28 @@ class AppTheme {
   static const Color errorColor = Color(0xFFE74C3C);
   static const Color successColor = Color(0xFF2ECC71);
   static const Color warningColor = Color(0xFFF39C12);
-  
-  // Light Theme
+
+  // ───────────────── LIGHT THEME ─────────────────
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     primaryColor: primaryColor,
     scaffoldBackgroundColor: backgroundColor,
+
     colorScheme: const ColorScheme.light(
       primary: primaryColor,
       secondary: secondaryColor,
       error: errorColor,
       surface: cardColor,
     ),
-    
+
+    // Remove purple cursor + selection color
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: Colors.grey,
+      selectionColor: Colors.grey,
+      selectionHandleColor: Colors.grey,
+    ),
+
     // AppBar Theme
     appBarTheme: AppBarTheme(
       elevation: 0,
@@ -40,7 +48,7 @@ class AppTheme {
       ),
       iconTheme: const IconThemeData(color: textPrimary),
     ),
-    
+
     // Text Theme
     textTheme: TextTheme(
       displayLarge: GoogleFonts.poppins(
@@ -87,7 +95,7 @@ class AppTheme {
         color: Colors.white,
       ),
     ),
-    
+
     // Card Theme
     cardTheme: CardTheme(
       elevation: 2,
@@ -96,7 +104,7 @@ class AppTheme {
       ),
       color: cardColor,
     ),
-    
+
     // Elevated Button Theme
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -113,7 +121,7 @@ class AppTheme {
         ),
       ),
     ),
-    
+
     // Outlined Button Theme
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
@@ -129,38 +137,45 @@ class AppTheme {
         ),
       ),
     ),
-    
-    // Input Decoration Theme
+
+    // 🔥 INPUT DECORATION THEME (Purple line removed)
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide.none,
       ),
+
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide.none,
       ),
+
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primaryColor, width: 2),
+        borderSide: BorderSide.none,
       ),
+
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: errorColor),
       ),
+
       labelStyle: GoogleFonts.inter(
         fontSize: 14,
         color: textSecondary,
       ),
+
       hintStyle: GoogleFonts.inter(
         fontSize: 14,
         color: textSecondary.withOpacity(0.6),
       ),
     ),
-    
+
     // Bottom Navigation Bar Theme
     bottomNavigationBarTheme: BottomNavigationBarThemeData(
       backgroundColor: Colors.white,
@@ -178,13 +193,14 @@ class AppTheme {
       elevation: 8,
     ),
   );
-  
-  // Dark Theme
+
+  // ───────────────── DARK THEME ─────────────────
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     primaryColor: primaryColor,
     scaffoldBackgroundColor: const Color(0xFF1A1A1A),
+
     colorScheme: const ColorScheme.dark(
       primary: primaryColor,
       secondary: secondaryColor,
@@ -192,8 +208,8 @@ class AppTheme {
       surface: Color(0xFF2D2D2D),
     ),
   );
-  
-  // Box Shadows
+
+  // Shadows
   static List<BoxShadow> cardShadow = [
     BoxShadow(
       color: Colors.black.withOpacity(0.08),
@@ -201,7 +217,7 @@ class AppTheme {
       offset: const Offset(0, 4),
     ),
   ];
-  
+
   static List<BoxShadow> buttonShadow = [
     BoxShadow(
       color: primaryColor.withOpacity(0.3),
@@ -210,3 +226,4 @@ class AppTheme {
     ),
   ];
 }
+

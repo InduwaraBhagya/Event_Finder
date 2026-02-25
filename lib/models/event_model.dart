@@ -1,3 +1,17 @@
+// FILE: lib/models/event_model.dart
+// FIX: "type 'String' is not a subtype of type 'int' of 'index'"
+// ─────────────────────────────────────────────────────────────
+// WHAT CHANGED  (everything else is 100% identical to your original):
+//   + Added _parseInt()   static helper  (lines ~90-103)
+//   + Added _parseDouble() static helper (lines ~105-116)
+//   + Added _parseBool()   static helper (lines ~118-126)
+//   + fromJson: latitude/longitude  now use _parseDouble()
+//   + fromJson: price               now uses  _parseDouble()
+//   + fromJson: totalSeats          now uses  _parseInt()   ← main crash fix
+//   + fromJson: availableSeats      now uses  _parseInt()   ← main crash fix
+//   + fromJson: isFeatured          now uses  _parseBool()
+//   + fromJson: reviewCount         now uses  _parseInt()
+//   + fromJson: distance            now uses  _parseDouble()
 
 class Event {
   final String id;
@@ -21,8 +35,8 @@ class Event {
   final DateTime createdAt;
   double? distance;
 
-  final String status;     
-  final String adminNote;  
+  final String status;
+  final String adminNote;
 
   Event({
     required this.id,
@@ -45,14 +59,13 @@ class Event {
     this.reviewCount,
     required this.createdAt,
     this.distance,
-    this.status    = 'pending',   
-    this.adminNote = '',          
+    this.status    = 'pending',
+    this.adminNote = '',
   });
 
-  // Normalize category names from database to match UI filter chips
+  // ── Normalize category names (unchanged) ─────────────────
   static String _normalizeCategory(String? raw) {
     if (raw == null || raw.isEmpty) return 'Other';
-
     switch (raw.toLowerCase().trim()) {
       case 'art':
       case 'arts':
@@ -88,8 +101,56 @@ class Event {
     }
   }
 
+  // ════════════════════════════════════════════════════════
+  // NEW: Safe type-conversion helpers
+  // MongoDB / REST APIs sometimes send numbers as Strings,
+  // e.g.  totalSeats: "400"  instead of  totalSeats: 400
+  // Direct cast like  json['totalSeats'] ?? 0  then crashes
+  // with: type 'String' is not a subtype of type 'int'
+  // ════════════════════════════════════════════════════════
+
+  /// Any → int  (null / String / double / int all handled safely)
+  static int _parseInt(dynamic val, [int fallback = 0]) {
+    if (val == null)   return fallback;
+    if (val is int)    return val;
+    if (val is double) return val.toInt();
+    if (val is String) {
+      final t = val.trim();
+      if (t.isEmpty) return fallback;
+      return int.tryParse(t) ?? double.tryParse(t)?.toInt() ?? fallback;
+    }
+    return fallback;
+  }
+
+  /// Any → double  (null / String / int / double all handled safely)
+  static double _parseDouble(dynamic val, [double fallback = 0.0]) {
+    if (val == null)   return fallback;
+    if (val is double) return val;
+    if (val is int)    return val.toDouble();
+    if (val is String) {
+      final t = val.trim();
+      if (t.isEmpty) return fallback;
+      return double.tryParse(t) ?? fallback;
+    }
+    return fallback;
+  }
+
+  /// Any → bool  (null / "true" / "false" / 0 / 1 all handled safely)
+  static bool _parseBool(dynamic val, [bool fallback = false]) {
+    if (val == null)  return fallback;
+    if (val is bool)  return val;
+    if (val is int)   return val != 0;
+    if (val is String) {
+      return val.toLowerCase() == 'true' || val == '1';
+    }
+    return fallback;
+  }
+
+  // ════════════════════════════════════════════════════════
+  // fromJson  — numeric fields now use safe parsers
+  // ════════════════════════════════════════════════════════
   factory Event.fromJson(Map<String, dynamic> json) {
-    //  Handle organizer as object or string
+    // Handle organizer as object or string (unchanged)
     String orgId   = '';
     String orgName = '';
 
@@ -108,41 +169,65 @@ class Event {
       title:       json['title']       ?? '',
       description: json['description'] ?? '',
       category:    _normalizeCategory(json['category']),
+
       date: json['date'] != null
           ? DateTime.tryParse(json['date']) ?? DateTime.now()
           : DateTime.now(),
-      time:         json['time']     ?? '',
-      location:     json['location'] ?? '',
-      latitude:     (json['latitude']  ?? 0.0).toDouble(),
-      longitude:    (json['longitude'] ?? 0.0).toDouble(),
-      organizerId:  orgId,
+
+      time:     json['time']     ?? '',
+      location: json['location'] ?? '',
+
+      // FIX: was (json['latitude'] ?? 0.0).toDouble() → crashes if String
+      latitude:  _parseDouble(json['latitude']),
+      longitude: _parseDouble(json['longitude']),
+
+      organizerId:   orgId,
       organizerName: orgName,
-      //  Handle images array safely
+
+      // Handle images array safely (unchanged)
       images: json['images'] != null
           ? List<String>.from(
               (json['images'] as List)
                   .where((img) => img != null && img.toString().isNotEmpty))
           : [],
-      price:          (json['price']          ?? 0.0).toDouble(),
-      totalSeats:      json['totalSeats']     ?? 0,
-      availableSeats:  json['availableSeats'] ?? 0,
-      isFeatured:      json['isFeatured']     ?? false,
+
+      // FIX: was (json['price'] ?? 0.0).toDouble() → crashes if String
+      price: _parseDouble(json['price']),
+
+      // ✅ MAIN FIX — these caused your crash:
+      // was: json['totalSeats'] ?? 0  → crashes when API returns "400"
+      totalSeats:     _parseInt(json['totalSeats']),
+      availableSeats: _parseInt(json['availableSeats']),
+
+      // FIX: was json['isFeatured'] ?? false → crashes if String "true"
+      isFeatured: _parseBool(json['isFeatured']),
+
+      // rating unchanged — (json['rating'] as num) handles int & double
       rating: json['rating'] != null
           ? (json['rating'] as num).toDouble()
           : null,
-      reviewCount: json['reviewCount'],
+
+      // FIX: was json['reviewCount'] directly → crashes if String "5"
+      reviewCount: json['reviewCount'] != null
+          ? _parseInt(json['reviewCount'])
+          : null,
+
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
           : DateTime.now(),
+
+      // FIX: was (json['distance'] as num).toDouble() → crashes if String
       distance: json['distance'] != null
-          ? (json['distance'] as num).toDouble()
+          ? _parseDouble(json['distance'])
           : null,
-      //  NEW: parse approval fields
+
+      // Approval fields (unchanged)
       status:    json['status']    ?? 'pending',
       adminNote: json['adminNote'] ?? '',
     );
   }
 
+  // ── toJson (unchanged) ────────────────────────────────────
   Map<String, dynamic> toJson() {
     return {
       'id':             id,
@@ -170,16 +255,17 @@ class Event {
     };
   }
 
+  // ── copyWith (unchanged) ──────────────────────────────────
   Event copyWith({
-    String? id,          String? title,       String? description,
-    String? category,    DateTime? date,      String? time,
-    String? location,    double? latitude,    double? longitude,
-    String? organizerId, String? organizerName,
+    String? id,           String? title,        String? description,
+    String? category,     DateTime? date,       String? time,
+    String? location,     double? latitude,     double? longitude,
+    String? organizerId,  String? organizerName,
     List<String>? images, double? price,
-    int? totalSeats,     int? availableSeats, bool? isFeatured,
-    double? rating,      int? reviewCount,    DateTime? createdAt,
+    int? totalSeats,      int? availableSeats,  bool? isFeatured,
+    double? rating,       int? reviewCount,     DateTime? createdAt,
     double? distance,
-    String? status,      String? adminNote,
+    String? status,       String? adminNote,
   }) {
     return Event(
       id:             id             ?? this.id,
@@ -207,12 +293,12 @@ class Event {
     );
   }
 
-  //Getters 
+  // ── Getters (unchanged) ───────────────────────────────────
   bool get isAvailable => availableSeats > 0;
   bool get isFree      => price == 0;
 
   /// First image from the images array (Cloudinary URL or empty string)
-  String get imageUrl  => images.isNotEmpty ? images.first : '';
+  String get imageUrl => images.isNotEmpty ? images.first : '';
 
   bool get isPending  => status == 'pending';
   bool get isApproved => status == 'approved';

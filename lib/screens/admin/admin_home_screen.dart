@@ -1,3 +1,8 @@
+// FILE: lib/screens/admin/admin_home_screen.dart
+// ADDED: 3 summary stat cards from OrganizerHomeScreen
+//        → Total Events | Total Bookings | Total Revenue
+// KEPT:  All original admin logic (approve / reject / delete / tabs)
+// FIXED: Image loading with shimmer + 3-level fallback chain
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -20,9 +25,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   late TabController _tabController;
   final _apiClient = ApiClient();
 
-  List<Event> _pendingEvents   = [];
-  List<Event> _approvedEvents  = [];
-  List<Event> _rejectedEvents  = [];
+  List<Event> _pendingEvents  = [];
+  List<Event> _approvedEvents = [];
+  List<Event> _rejectedEvents = [];
   bool _isLoading = false;
 
   @override
@@ -38,10 +43,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     super.dispose();
   }
 
+  // ── All events (used for stat cards too) ────────────
+  List<Event> get _allEvents => [
+        ..._pendingEvents,
+        ..._approvedEvents,
+        ..._rejectedEvents,
+      ];
+
   Future<void> _loadAllEvents() async {
     setState(() => _isLoading = true);
     try {
-      // Load all statuses
       final allRes = await _apiClient.get(
         '${AppConfig.eventsEndpoint}/admin/all',
         requiresAuth: true,
@@ -62,7 +73,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  // ── Approve an event 
   Future<void> _approveEvent(Event event) async {
     final confirm = await _showConfirmDialog(
       title: 'Approve Event',
@@ -71,7 +81,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       confirmColor: Colors.green.shade700,
     );
     if (!confirm) return;
-
     try {
       await _apiClient.patch(
         '${AppConfig.eventsEndpoint}/${event.id}/approve',
@@ -85,11 +94,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  // ── Reject an event ───────────────────────────────────────────
   Future<void> _rejectEvent(Event event) async {
     final reason = await _showRejectDialog(event.title);
-    if (reason == null) return; // cancelled
-
+    if (reason == null) return;
     try {
       await _apiClient.patch(
         '${AppConfig.eventsEndpoint}/${event.id}/reject',
@@ -103,7 +110,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  // ── Delete an event 
   Future<void> _deleteEvent(Event event) async {
     final confirm = await _showConfirmDialog(
       title: 'Delete Event',
@@ -112,7 +118,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       confirmColor: Colors.red.shade700,
     );
     if (!confirm) return;
-
     try {
       await _apiClient.delete(
         '${AppConfig.eventsEndpoint}/${event.id}',
@@ -129,11 +134,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
+    // ── Compute stats (same formula as OrganizerHomeScreen) ──
+    final all           = _allEvents;
+    final totalEvents   = all.length;
+    final totalBookings = all.fold<int>(
+        0, (s, e) => s + (e.totalSeats - e.availableSeats));
+    final totalRevenue  = all.fold<double>(
+        0, (s, e) => s + (e.isFree ? 0 : e.price * (e.totalSeats - e.availableSeats)));
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       body: CustomScrollView(
         slivers: [
-          // ── Header 
+
+          // ──────────────────────────────────────────────
+          // HEADER (original preserved)
+          // ──────────────────────────────────────────────
           SliverAppBar(
             pinned: true,
             expandedHeight: 160,
@@ -142,26 +158,48 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.deepPurple.shade700,
-                             Colors.deepPurple.shade900],
+                    colors: [
+                      Colors.deepPurple.shade700,
+                      Colors.deepPurple.shade900,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 70, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Admin Dashboard',
-                          style: TextStyle(color: Colors.white,
-                              fontSize: 26, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 4),
-                      Text('Event Approval Management',
-                          style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    ],
+                child: Stack(children: [
+                  // Decorative circles (matching OrganizerHomeScreen style)
+                  Positioned(
+                    top: -30, right: -30,
+                    child: CircleAvatar(
+                      radius: 80,
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                    ),
                   ),
-                ),
+                  Positioned(
+                    bottom: 20, left: -20,
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white.withOpacity(0.05),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 70, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Admin Dashboard',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text('Event Approval Management',
+                            style: TextStyle(
+                                color: Colors.white70, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ]),
               ),
             ),
             actions: [
@@ -210,25 +248,127 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             ),
           ),
 
-          // ── Stats row 
+          // ──────────────────────────────────────────────
+          // ★ NEW: 3 STAT CARDS (from OrganizerHomeScreen)
+          //   Total Events | Total Bookings | Total Revenue
+          // ──────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(children: [
-                _statChip('⏳ Pending',  _pendingEvents.length,  Colors.orange),
-                const SizedBox(width: 8),
-                _statChip('✅ Approved', _approvedEvents.length, Colors.green),
-                const SizedBox(width: 8),
-                _statChip('❌ Rejected', _rejectedEvents.length, Colors.red),
-              ]),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section label
+                  Row(children: [
+                    Container(
+                      width: 4, height: 18,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.deepPurple.shade700,
+                            Colors.deepPurple.shade400,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Overview',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D2D2D))),
+                  ]),
+                  const SizedBox(height: 12),
+
+                  // 3 stat cards row — same widget as OrganizerHomeScreen._miniStat
+                  Row(children: [
+                    Expanded(
+                      child: _miniStat(
+                        title: 'Total Events',
+                        value: '$totalEvents',
+                        icon: Icons.event_rounded,
+                        color: Colors.deepPurple.shade600,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _miniStat(
+                        title: 'Bookings',
+                        value: '$totalBookings',
+                        icon: Icons.confirmation_number_rounded,
+                        color: const Color(0xFF2575FC),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _miniStat(
+                        title: 'Revenue',
+                        value: 'Rs.${totalRevenue.toStringAsFixed(0)}',
+                        icon: Icons.payments_rounded,
+                        color: Colors.green.shade600,
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
             ),
           ),
 
-          // ── Tab content
+          // ──────────────────────────────────────────────
+          // ORIGINAL status stat chips row
+          // ──────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Container(
+                      width: 4, height: 18,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.deepPurple.shade700,
+                            Colors.deepPurple.shade400,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Status Breakdown',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D2D2D))),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _statChip('⏳ Pending',  _pendingEvents.length,  Colors.orange),
+                    const SizedBox(width: 8),
+                    _statChip('✅ Approved', _approvedEvents.length, Colors.green),
+                    const SizedBox(width: 8),
+                    _statChip('❌ Rejected', _rejectedEvents.length, Colors.red),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+
+          // ──────────────────────────────────────────────
+          // TAB CONTENT (original preserved)
+          // ──────────────────────────────────────────────
           SliverFillRemaining(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(
-                    color: Colors.deepPurple))
+                ? const Center(
+                    child: CircularProgressIndicator(
+                        color: Colors.deepPurple))
                 : TabBarView(
                     controller: _tabController,
                     children: [
@@ -243,7 +383,51 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ── Pending tab 
+  // ──────────────────────────────────────────────────────
+  // ★ NEW: Mini stat card — copied from OrganizerHomeScreen
+  // ──────────────────────────────────────────────────────
+  Widget _miniStat({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05), blurRadius: 8)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          Text(title,
+              style: TextStyle(
+                  color: Colors.grey.shade500, fontSize: 10)),
+        ],
+      ),
+    );
+  }
+
+  // ── ORIGINAL list builders ───────────────────────────
   Widget _buildPendingList() {
     if (_pendingEvents.isEmpty) {
       return _emptyState(
@@ -265,7 +449,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ── Approved tab 
   Widget _buildApprovedList() {
     if (_approvedEvents.isEmpty) {
       return _emptyState(
@@ -285,7 +468,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
- 
   Widget _buildRejectedList() {
     if (_rejectedEvents.isEmpty) {
       return _emptyState(
@@ -305,7 +487,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // Helpers
+  // ── ORIGINAL helpers ─────────────────────────────────
   Widget _countBadge(int count, Color color) {
     if (count == 0) return const SizedBox.shrink();
     return Container(
@@ -313,8 +495,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       decoration: BoxDecoration(
           color: color, borderRadius: BorderRadius.circular(10)),
       child: Text('$count',
-          style: const TextStyle(color: Colors.white,
-              fontSize: 11, fontWeight: FontWeight.bold)),
+          style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold)),
     );
   }
 
@@ -329,10 +513,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         ),
         child: Column(children: [
           Text('$count',
-              style: TextStyle(color: color, fontSize: 20,
+              style: TextStyle(
+                  color: color,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold)),
-          Text(label,
-              style: TextStyle(color: color, fontSize: 11)),
+          Text(label, style: TextStyle(color: color, fontSize: 11)),
         ]),
       ),
     );
@@ -349,7 +534,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         Icon(icon, size: 72, color: color.withOpacity(0.4)),
         const SizedBox(height: 16),
         Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Text(subtitle,
             style: TextStyle(color: Colors.grey.shade600)),
@@ -361,7 +547,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor:
+          isError ? Colors.red.shade700 : Colors.green.shade700,
       behavior: SnackBarBehavior.floating,
     ));
   }
@@ -397,7 +584,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         false;
   }
 
-  // Reject dialog — asks admin to type a reason
   Future<String?> _showRejectDialog(String eventTitle) async {
     final ctrl = TextEditingController();
     return await showDialog<String>(
@@ -409,19 +595,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('Rejecting "$eventTitle"',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              style: TextStyle(
+                  color: Colors.grey.shade600, fontSize: 13)),
           const SizedBox(height: 16),
           TextField(
             controller: ctrl,
             maxLines: 3,
             decoration: InputDecoration(
               labelText: 'Reason for rejection *',
-              hintText: 'e.g. Missing event details, inappropriate content...',
+              hintText:
+                  'e.g. Missing event details, inappropriate content...',
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.red, width: 2),
+                borderSide:
+                    const BorderSide(color: Colors.red, width: 2),
               ),
             ),
           ),
@@ -451,8 +640,188 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   }
 }
 
+// ══════════════════════════════════════════════════════════
+// CARD MODE
+// ══════════════════════════════════════════════════════════
 enum CardMode { pending, approved, rejected }
 
+// ══════════════════════════════════════════════════════════
+// SMART IMAGE WIDGET — shimmer + 3-level fallback
+// ══════════════════════════════════════════════════════════
+class _EventImage extends StatefulWidget {
+  const _EventImage({
+    required this.imageUrl,
+    required this.category,
+    required this.height,
+  });
+
+  final String? imageUrl;
+  final String  category;
+  final double  height;
+
+  static const Map<String, String> _categoryImages = {
+    'Technology':    'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&q=80',
+    'Music':         'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=600&q=80',
+    'Sports':        'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&q=80',
+    'Arts':          'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&q=80',
+    'Food & Drink':  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80',
+    'Business':      'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80',
+    'Health':        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+    'Education':     'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80',
+    'Entertainment': 'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=600&q=80',
+    'Other':         'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=600&q=80',
+  };
+
+  static bool _isValidUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return false;
+    final t = url.trim();
+    return t.startsWith('http://') || t.startsWith('https://');
+  }
+
+  static String _categoryFallback(String category) =>
+      _categoryImages[category] ?? _categoryImages['Other']!;
+
+  static String _lastResortFallback(String category) {
+    const seeds = {
+      'Technology': '10', 'Music': '20', 'Sports': '30',
+      'Arts': '40', 'Food & Drink': '50', 'Business': '60',
+      'Health': '70', 'Education': '80',
+      'Entertainment': '90', 'Other': '100',
+    };
+    return 'https://picsum.photos/seed/${seeds[category] ?? "100"}/600/400';
+  }
+
+  @override
+  State<_EventImage> createState() => _EventImageState();
+}
+
+class _EventImageState extends State<_EventImage> {
+  late String _currentUrl;
+  int _fallbackLevel = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_EventImage._isValidUrl(widget.imageUrl)) {
+      _currentUrl = widget.imageUrl!.trim();
+    } else {
+      _currentUrl = _EventImage._categoryFallback(widget.category);
+      _fallbackLevel = 1;
+    }
+  }
+
+  void _onError() {
+    if (!mounted) return;
+    setState(() {
+      if (_fallbackLevel == 0) {
+        _currentUrl = _EventImage._categoryFallback(widget.category);
+        _fallbackLevel = 1;
+      } else if (_fallbackLevel == 1) {
+        _currentUrl = _EventImage._lastResortFallback(widget.category);
+        _fallbackLevel = 2;
+      } else {
+        _fallbackLevel = 3;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_fallbackLevel >= 3) {
+      return Container(
+        width: double.infinity,
+        height: widget.height,
+        color: Colors.grey.shade200,
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.image_not_supported_rounded,
+              size: 40, color: Colors.grey.shade400),
+          const SizedBox(height: 6),
+          Text(widget.category,
+              style: TextStyle(
+                  color: Colors.grey.shade500, fontSize: 12)),
+        ]),
+      );
+    }
+
+    return Image.network(
+      _currentUrl,
+      width: double.infinity,
+      height: widget.height,
+      fit: BoxFit.cover,
+      loadingBuilder: (_, child, progress) {
+        if (progress == null) return child;
+        return _ShimmerBox(height: widget.height);
+      },
+      errorBuilder: (_, __, ___) {
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _onError());
+        return _ShimmerBox(height: widget.height);
+      },
+    );
+  }
+}
+
+// ── Animated shimmer placeholder ────────────────────────
+class _ShimmerBox extends StatefulWidget {
+  const _ShimmerBox({required this.height});
+  final double height;
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double>   _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
+    _anim = Tween<double>(begin: -1.5, end: 2.5)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: double.infinity,
+        height: widget.height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            stops: [
+              (_anim.value - 0.3).clamp(0, 1),
+              _anim.value.clamp(0, 1),
+              (_anim.value + 0.3).clamp(0, 1),
+            ],
+            colors: [
+              Colors.grey.shade200,
+              Colors.grey.shade100,
+              Colors.grey.shade200,
+            ],
+          ),
+        ),
+        child: Center(
+          child: Icon(Icons.image_rounded,
+              size: 36, color: Colors.grey.shade300),
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ADMIN EVENT CARD
+// ══════════════════════════════════════════════════════════
 class _AdminEventCard extends StatelessWidget {
   const _AdminEventCard({
     required this.event,
@@ -462,24 +831,11 @@ class _AdminEventCard extends StatelessWidget {
     this.onDelete,
   });
 
-  final Event event;
-  final CardMode mode;
+  final Event        event;
+  final CardMode     mode;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
   final VoidCallback? onDelete;
-
-  static const Map<String, String> _categoryImages = {
-    'Technology':    'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500&q=80',
-    'Music':         'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&q=80',
-    'Sports':        'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&q=80',
-    'Arts':          'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=500&q=80',
-    'Food & Drink':  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=500&q=80',
-    'Business':      'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=500&q=80',
-    'Health':        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&q=80',
-    'Education':     'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=500&q=80',
-    'Entertainment': 'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=500&q=80',
-    'Other':         'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=500&q=80',
-  };
 
   Color get _statusColor {
     switch (mode) {
@@ -500,37 +856,34 @@ class _AdminEventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM dd, yyyy').format(event.date);
-    final imageUrl = (event.imageUrl.isNotEmpty &&
-            (event.imageUrl.startsWith('http://') ||
-             event.imageUrl.startsWith('https://')))
-        ? event.imageUrl
-        : (_categoryImages[event.category] ?? _categoryImages['Other']!);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _statusColor.withOpacity(0.3), width: 1.5),
+        border: Border.all(
+            color: _statusColor.withOpacity(0.3), width: 1.5),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04), blurRadius: 10)
         ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Image + status badge
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+        // Image with shimmer + fallback
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(17)),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(17)),
           child: Stack(children: [
-            SizedBox(
+            _EventImage(
+              imageUrl: event.imageUrl,
+              category: event.category,
               height: 140,
-              width: double.infinity,
-              child: Image.network(imageUrl, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                      color: Colors.grey.shade100,
-                      child: const Icon(Icons.image_not_supported,
-                          size: 40, color: Colors.grey))),
             ),
-            // Status badge (top left)
+            // Status badge
             Positioned(
               top: 10, left: 10,
               child: Container(
@@ -540,11 +893,13 @@ class _AdminEventCard extends StatelessWidget {
                     color: _statusColor,
                     borderRadius: BorderRadius.circular(20)),
                 child: Text(_statusLabel,
-                    style: const TextStyle(color: Colors.white,
-                        fontSize: 11, fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
               ),
             ),
-            // Delete button (top right)
+            // Delete button
             Positioned(
               top: 10, right: 10,
               child: GestureDetector(
@@ -564,8 +919,9 @@ class _AdminEventCard extends StatelessWidget {
 
         Padding(
           padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Category + organizer name
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -586,15 +942,18 @@ class _AdminEventCard extends StatelessWidget {
                   const Icon(Icons.person_outline,
                       size: 13, color: Colors.grey),
                   const SizedBox(width: 4),
-                  Text(event.organizerName ?? 'Unknown',
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 11)),
+                  Text(
+                    event.organizerName?.isNotEmpty == true
+                        ? event.organizerName!
+                        : 'Unknown',
+                    style: const TextStyle(
+                        color: Colors.grey, fontSize: 11),
+                  ),
                 ]),
               ],
             ),
             const SizedBox(height: 8),
 
-            // Title
             Text(event.title,
                 style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.bold),
@@ -602,7 +961,6 @@ class _AdminEventCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis),
             const SizedBox(height: 8),
 
-            // Date + location row
             Row(children: [
               Icon(Icons.calendar_today,
                   size: 13, color: Colors.grey.shade500),
@@ -615,15 +973,18 @@ class _AdminEventCard extends StatelessWidget {
                   size: 13, color: Colors.grey.shade500),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(event.location,
-                    style: TextStyle(
-                        color: Colors.grey.shade600, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  event.location.isNotEmpty
+                      ? event.location
+                      : 'Location not specified',
+                  style: TextStyle(
+                      color: Colors.grey.shade600, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ]),
 
-            // Admin rejection note
             if (mode == CardMode.rejected &&
                 event.adminNote.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -641,11 +1002,10 @@ class _AdminEventCard extends StatelessWidget {
                       size: 14, color: Colors.red.shade700),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                      'Reason: ${event.adminNote}',
-                      style: TextStyle(
-                          color: Colors.red.shade700, fontSize: 12),
-                    ),
+                    child: Text('Reason: ${event.adminNote}',
+                        style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 12)),
                   ),
                 ]),
               ),
@@ -653,7 +1013,6 @@ class _AdminEventCard extends StatelessWidget {
 
             const Divider(height: 20),
 
-            // Price + action buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -666,7 +1025,6 @@ class _AdminEventCard extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       color: Colors.deepPurple),
                 ),
-                // Pending: show Approve + Reject buttons
                 if (mode == CardMode.pending)
                   Row(children: [
                     _actionBtn(
@@ -683,7 +1041,6 @@ class _AdminEventCard extends StatelessWidget {
                       onTap: onApprove,
                     ),
                   ]),
-                // Approved: show seats info
                 if (mode == CardMode.approved)
                   Text(
                     '${event.availableSeats}/${event.totalSeats} seats',
@@ -707,7 +1064,8 @@ class _AdminEventCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(10),
