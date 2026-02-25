@@ -1,25 +1,24 @@
 // FILE: lib/screens/organizer/create_event_screen.dart
-// CHANGED FROM ORIGINAL:
-//   1. Added: dart:io import
-//   2. Added: image_picker import
-//   3. Added: _picker, _imageFile fields
-//   4. Added: _pickImage(), _showImageSourceSheet(), _sourceBtn() methods
-//   5. _submitEvent(): sends multipart if image selected, JSON if not
-//   6. _buildPage1(): added image picker section at top
-//   7. _buildPage3(): added image status row in summary
-// Everything else is IDENTICAL to your original file.
+// PURPLE COLORFUL REDESIGN — all purple shades throughout
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';          // NEW
+import 'package:image_picker/image_picker.dart';
 import 'package:event_finder/services/api_client.dart';
 import 'package:event_finder/config/app_config.dart';
 import 'package:event_finder/utils/app_theme.dart';
 import 'package:intl/intl.dart';
 
+// ── Purple palette ─────────────────────────────────────
+const _p1 = Color(0xFF6C3CE1); // deep purple
+const _p2 = Color(0xFF9B59B6); // medium purple
+const _p3 = Color(0xFFBB8FCE); // light purple
+const _p4 = Color(0xFFF3E5F5); // lavender bg
+const _p5 = Color(0xFF4A148C); // darkest purple
+const _pGrad = [Color(0xFF6C3CE1), Color(0xFFB06AB3)]; // main gradient
+
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
-
   @override
   State<CreateEventScreen> createState() => _CreateEventScreenState();
 }
@@ -27,7 +26,7 @@ class CreateEventScreen extends StatefulWidget {
 class _CreateEventScreenState extends State<CreateEventScreen> {
   final _apiClient      = ApiClient();
   final _pageController = PageController();
-  final _picker         = ImagePicker();                  // NEW
+  final _picker         = ImagePicker();
 
   final _titleCtrl    = TextEditingController();
   final _descCtrl     = TextEditingController();
@@ -43,7 +42,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   bool       _isFree      = false;
   bool       _isLoading   = false;
   int        _currentPage = 0;
-  File?      _imageFile;                                  // NEW
+  File?      _imageFile;
 
   final List<String> _categories = [
     'Technology', 'Music', 'Sports', 'Arts',
@@ -52,16 +51,30 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   ];
 
   final Map<String, IconData> _categoryIcons = {
-    'Technology':    Icons.computer,
-    'Music':         Icons.music_note,
-    'Sports':        Icons.sports,
-    'Arts':          Icons.palette,
-    'Food & Drink':  Icons.restaurant,
-    'Business':      Icons.business_center,
-    'Health':        Icons.favorite,
-    'Education':     Icons.school,
-    'Entertainment': Icons.theater_comedy,
-    'Other':         Icons.event,
+    'Technology':    Icons.computer_rounded,
+    'Music':         Icons.music_note_rounded,
+    'Sports':        Icons.sports_soccer_rounded,
+    'Arts':          Icons.palette_rounded,
+    'Food & Drink':  Icons.restaurant_rounded,
+    'Business':      Icons.business_center_rounded,
+    'Health':        Icons.favorite_rounded,
+    'Education':     Icons.school_rounded,
+    'Entertainment': Icons.theater_comedy_rounded,
+    'Other':         Icons.event_rounded,
+  };
+
+  // Purple shades per category
+  final Map<String, List<Color>> _catColors = {
+    'Technology':    [Color(0xFF6C3CE1), Color(0xFF9B59B6)],
+    'Music':         [Color(0xFF7B2D8B), Color(0xFFB06AB3)],
+    'Sports':        [Color(0xFF4A148C), Color(0xFF7B1FA2)],
+    'Arts':          [Color(0xFF8E24AA), Color(0xFFBA68C8)],
+    'Food & Drink':  [Color(0xFF6A1B9A), Color(0xFFAB47BC)],
+    'Business':      [Color(0xFF4527A0), Color(0xFF7E57C2)],
+    'Health':        [Color(0xFF880E4F), Color(0xFFAD1457)],
+    'Education':     [Color(0xFF311B92), Color(0xFF512DA8)],
+    'Entertainment': [Color(0xFF6A0080), Color(0xFF9C27B0)],
+    'Other':         [Color(0xFF4A148C), Color(0xFF6C3CE1)],
   };
 
   @override
@@ -74,18 +87,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     super.dispose();
   }
 
-  // ════════════════════════════════════════════════════════════
-  // NEW: Image picker methods
-  // ════════════════════════════════════════════════════════════
-
   Future<void> _pickImage(ImageSource source) async {
     try {
       final picked = await _picker.pickImage(
-        source:       source,
-        imageQuality: 85,     // compress slightly to reduce upload time
-        maxWidth:     1200,
-        maxHeight:    800,
-      );
+          source: source, imageQuality: 85, maxWidth: 1200, maxHeight: 800);
       if (picked != null) setState(() => _imageFile = File(picked.path));
     } catch (e) {
       _showError('Could not pick image: $e');
@@ -96,36 +101,51 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: _p3.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(2)),
             ),
-            const SizedBox(height: 14),
-            const Text('Event Image',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: _pGrad),
+                    borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.image_rounded,
+                    color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Text('Add Event Image',
+                  style: TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 24),
             Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
               _sourceBtn(
-                icon: Icons.photo_library_rounded, label: 'Gallery',
-                color: Colors.blue.shade600,
+                icon: Icons.photo_library_rounded,
+                label: 'Gallery',
+                colors: [Color(0xFF6C3CE1), Color(0xFF9B59B6)],
                 onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
               ),
               _sourceBtn(
-                icon: Icons.camera_alt_rounded, label: 'Camera',
-                color: Colors.green.shade600,
+                icon: Icons.camera_alt_rounded,
+                label: 'Camera',
+                colors: [Color(0xFF4A148C), Color(0xFF7B1FA2)],
                 onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
               ),
               if (_imageFile != null)
                 _sourceBtn(
-                  icon: Icons.delete_outline_rounded, label: 'Remove',
-                  color: Colors.red.shade600,
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Remove',
+                  colors: [Color(0xFFAD1457), Color(0xFFC2185B)],
                   onTap: () { Navigator.pop(context); setState(() => _imageFile = null); },
                 ),
             ]),
@@ -136,28 +156,32 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Widget _sourceBtn({
-    required IconData icon, required String label,
-    required Color color, required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    required List<Color> colors,
+    required VoidCallback onTap,
   }) =>
       GestureDetector(
         onTap: onTap,
         child: Column(children: [
           Container(
-            width: 60, height: 60,
+            width: 66, height: 66,
             decoration: BoxDecoration(
-                color: color.withOpacity(0.12), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 28),
+              gradient: LinearGradient(colors: colors),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(
+                  color: colors.first.withOpacity(0.4),
+                  blurRadius: 12, offset: const Offset(0, 4))],
+            ),
+            child: Icon(icon, color: Colors.white, size: 28),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(label,
               style: TextStyle(
-                  color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+                  color: colors.first,
+                  fontWeight: FontWeight.w700, fontSize: 12)),
         ]),
       );
-
-  // ════════════════════════════════════════════════════════════
-  // ORIGINAL methods — unchanged
-  // ════════════════════════════════════════════════════════════
 
   Future<void> _pickDate() async {
     final d = await showDatePicker(
@@ -167,7 +191,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       lastDate:    DateTime.now().add(const Duration(days: 730)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-            colorScheme: ColorScheme.light(primary: AppTheme.primaryColor)),
+            colorScheme: const ColorScheme.light(primary: _p1)),
         child: child!,
       ),
     );
@@ -180,7 +204,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       initialTime: TimeOfDay.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-            colorScheme: ColorScheme.light(primary: AppTheme.primaryColor)),
+            colorScheme: const ColorScheme.light(primary: _p1)),
         child: child!,
       ),
     );
@@ -195,26 +219,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   bool _validatePage() {
     if (_currentPage == 0) {
-      if (_titleCtrl.text.trim().length < 5) {
-        _showError('Title must be at least 5 characters'); return false;
-      }
-      if (_descCtrl.text.trim().length < 20) {
-        _showError('Description must be at least 20 characters'); return false;
-      }
+      if (_titleCtrl.text.trim().length < 5) { _showError('Title must be at least 5 characters'); return false; }
+      if (_descCtrl.text.trim().length < 20)  { _showError('Description must be at least 20 characters'); return false; }
     } else if (_currentPage == 1) {
-      if (_selectedDate == null) { _showError('Please select a date'); return false; }
-      if (_selectedTime == null) { _showError('Please select a time'); return false; }
-      if (_locationCtrl.text.trim().isEmpty) { _showError('Please enter the location'); return false; }
-      if (_latCtrl.text.trim().isEmpty || _lngCtrl.text.trim().isEmpty) {
-        _showError('Please enter GPS coordinates'); return false;
-      }
+      if (_selectedDate == null)               { _showError('Please select a date'); return false; }
+      if (_selectedTime == null)               { _showError('Please select a time'); return false; }
+      if (_locationCtrl.text.trim().isEmpty)   { _showError('Please enter the location'); return false; }
+      if (_latCtrl.text.trim().isEmpty || _lngCtrl.text.trim().isEmpty) { _showError('Please enter GPS coordinates'); return false; }
     } else if (_currentPage == 2) {
-      if (!_isFree && double.tryParse(_priceCtrl.text.trim()) == null) {
-        _showError('Please enter a valid price'); return false;
-      }
-      if ((int.tryParse(_seatsCtrl.text.trim()) ?? 0) < 1) {
-        _showError('Please enter valid number of seats'); return false;
-      }
+      if (!_isFree && double.tryParse(_priceCtrl.text.trim()) == null) { _showError('Please enter a valid price'); return false; }
+      if ((int.tryParse(_seatsCtrl.text.trim()) ?? 0) < 1)             { _showError('Please enter valid number of seats'); return false; }
     }
     return true;
   }
@@ -224,7 +238,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     if (_currentPage < 2) {
       setState(() => _currentPage++);
       _pageController.animateToPage(_currentPage,
-          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
     } else {
       _submitEvent();
     }
@@ -234,99 +248,54 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     if (_currentPage > 0) {
       setState(() => _currentPage--);
       _pageController.animateToPage(_currentPage,
-          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
     }
   }
 
-  // ════════════════════════════════════════════════════════════
-  // CHANGED: _submitEvent
-  // If image selected → sends multipart/form-data → backend
-  //   uploads to Cloudinary via multer → URL saved in images[]
-  // If no image → sends normal JSON (same as before)
-  // ApiClient reads token from StorageService internally — no
-  // AuthProvider needed here
-  // ════════════════════════════════════════════════════════════
   Future<void> _submitEvent() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
-
     try {
       final seats = int.tryParse(_seatsCtrl.text.trim())    ?? 0;
       final price = _isFree ? 0.0 : (double.tryParse(_priceCtrl.text.trim()) ?? 0.0);
-
       Map<String, dynamic> response;
-
       if (_imageFile != null) {
-        // ── WITH IMAGE ────────────────────────────────────────
-        // multipart/form-data → backend multer → Cloudinary
-        // req.file.path on backend = Cloudinary URL
-        // saved in event.images[0]
         response = await _apiClient.postMultipart(
           AppConfig.eventsEndpoint,
           fields: {
-            'title':          _titleCtrl.text.trim(),
-            'description':    _descCtrl.text.trim(),
-            'category':       _selectedCategory,
-            'date':           _selectedDate!.toIso8601String(),
-            'time':           _formatTime(_selectedTime!),
-            'location':       _locationCtrl.text.trim(),
-            'latitude':       _latCtrl.text.trim().isEmpty ? '0' : _latCtrl.text.trim(),
-            'longitude':      _lngCtrl.text.trim().isEmpty ? '0' : _lngCtrl.text.trim(),
-            'price':          price.toString(),
-            'totalSeats':     seats.toString(),
+            'title': _titleCtrl.text.trim(), 'description': _descCtrl.text.trim(),
+            'category': _selectedCategory, 'date': _selectedDate!.toIso8601String(),
+            'time': _formatTime(_selectedTime!), 'location': _locationCtrl.text.trim(),
+            'latitude': _latCtrl.text.trim().isEmpty ? '0' : _latCtrl.text.trim(),
+            'longitude': _lngCtrl.text.trim().isEmpty ? '0' : _lngCtrl.text.trim(),
+            'price': price.toString(), 'totalSeats': seats.toString(),
             'availableSeats': seats.toString(),
           },
-          imageFile:    _imageFile,
-          fileFieldName: 'image',   // ← must match upload.single('image') in your routes/events.js
-          requiresAuth: true,
+          imageFile: _imageFile, fileFieldName: 'image', requiresAuth: true,
         );
       } else {
-        // ── WITHOUT IMAGE ─────────────────────────────────────
-        // Same JSON POST as your original code
-        response = await _apiClient.post(
-          AppConfig.eventsEndpoint,
-          {
-            'title':          _titleCtrl.text.trim(),
-            'description':    _descCtrl.text.trim(),
-            'category':       _selectedCategory,
-            'date':           _selectedDate!.toIso8601String(),
-            'time':           _formatTime(_selectedTime!),
-            'location':       _locationCtrl.text.trim(),
-            'latitude':       double.tryParse(_latCtrl.text.trim())  ?? 0.0,
-            'longitude':      double.tryParse(_lngCtrl.text.trim()) ?? 0.0,
-            'price':          price,
-            'totalSeats':     seats,
-            'availableSeats': seats,
-            'images':         [],
-          },
-          requiresAuth: true,
-        );
+        response = await _apiClient.post(AppConfig.eventsEndpoint, {
+          'title': _titleCtrl.text.trim(), 'description': _descCtrl.text.trim(),
+          'category': _selectedCategory, 'date': _selectedDate!.toIso8601String(),
+          'time': _formatTime(_selectedTime!), 'location': _locationCtrl.text.trim(),
+          'latitude': double.tryParse(_latCtrl.text.trim()) ?? 0.0,
+          'longitude': double.tryParse(_lngCtrl.text.trim()) ?? 0.0,
+          'price': price, 'totalSeats': seats, 'availableSeats': seats, 'images': [],
+        }, requiresAuth: true);
       }
-
-      print('✅ Response: $response');
-
       if (mounted) {
         setState(() => _isLoading = false);
-        final title = response['event']?['title'] ??
-            response['data']?['title'] ??
-            _titleCtrl.text;
+        final title = response['event']?['title'] ?? response['data']?['title'] ?? _titleCtrl.text;
         _showPendingDialog(title);
       }
     } catch (e) {
-      print('❌ Error: $e');
       if (mounted) setState(() => _isLoading = false);
       final raw = e.toString().replaceAll('Exception: ', '');
-      if (raw.contains('404')) {
-        _showError('404: Check AppConfig.eventsEndpoint in app_config.dart');
-      } else if (raw.contains('401') || raw.toLowerCase().contains('unauthorized')) {
-        _showError('Session expired. Please log out and log in again.');
-      } else if (raw.contains('403')) {
-        _showError('Only organizers can create events. Check your account role.');
-      } else if (raw.contains('400')) {
-        _showError('Missing required fields: $raw');
-      } else {
-        _showError('Error: $raw');
-      }
+      if (raw.contains('404'))        _showError('404: Check AppConfig.eventsEndpoint');
+      else if (raw.contains('401'))   _showError('Session expired. Please log in again.');
+      else if (raw.contains('403'))   _showError('Only organizers can create events.');
+      else if (raw.contains('400'))   _showError('Missing required fields: $raw');
+      else                            _showError('Error: $raw');
     }
   }
 
@@ -334,14 +303,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      content: Row(children: [
         const Icon(Icons.error_outline, color: Colors.white, size: 18),
         const SizedBox(width: 8),
-        Expanded(child: Text(msg, maxLines: 5)),
+        Expanded(child: Text(msg, maxLines: 4)),
       ]),
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: const Color(0xFFAD1457),
       behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 6),
+      duration: const Duration(seconds: 5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ));
   }
@@ -351,49 +320,49 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            width: 100, height: 100,
             decoration: BoxDecoration(
-                color: Colors.orange.shade50, shape: BoxShape.circle),
-            child: Icon(Icons.hourglass_top_rounded,
-                color: Colors.orange.shade600, size: 72),
+              gradient: const LinearGradient(colors: _pGrad),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(
+                  color: _p1.withOpacity(0.4),
+                  blurRadius: 20, offset: const Offset(0, 8))],
+            ),
+            child: const Icon(Icons.hourglass_top_rounded,
+                color: Colors.white, size: 52),
           ),
           const SizedBox(height: 20),
-          const Text('Submitted for Review! 🕐',
+          const Text('Submitted for Review!',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center),
-          const SizedBox(height: 10),
-          Text('"$title" has been sent to admin for approval.',
+          const SizedBox(height: 8),
+          Text('"$title" has been sent to admin.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+              style: const TextStyle(color: Color(0xFF9B59B6), fontSize: 14)),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.blue.shade200),
+              color: _p4,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _p3.withOpacity(0.5)),
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 15),
-                  SizedBox(width: 6),
-                  Text('What happens next:',
-                      style: TextStyle(color: Colors.blue,
-                          fontWeight: FontWeight.bold, fontSize: 12)),
-                ]),
-                SizedBox(height: 8),
-                Text('✅  Approved → Event goes live on events page',
-                    style: TextStyle(color: Colors.blue, fontSize: 12)),
-                SizedBox(height: 4),
-                Text('❌  Rejected → Check "My Events" to see why',
-                    style: TextStyle(color: Colors.blue, fontSize: 12)),
-              ],
-            ),
+            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(Icons.info_outline, color: _p1, size: 14),
+                SizedBox(width: 6),
+                Text('What happens next:',
+                    style: TextStyle(color: _p1, fontWeight: FontWeight.bold, fontSize: 12)),
+              ]),
+              SizedBox(height: 8),
+              Text('✅  Approved → Event goes live', style: TextStyle(color: _p2, fontSize: 12)),
+              SizedBox(height: 4),
+              Text('❌  Rejected → Check "My Events" for reason',
+                  style: TextStyle(color: _p2, fontSize: 12)),
+            ]),
           ),
         ]),
         actions: [
@@ -401,17 +370,24 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () { Navigator.pop(ctx); Navigator.pop(context); },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: _pGrad),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [BoxShadow(color: _p1.withOpacity(0.4),
+                      blurRadius: 12, offset: const Offset(0, 4))],
                 ),
-                child: const Text('OK, Got it!',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: ElevatedButton(
+                  onPressed: () { Navigator.pop(ctx); Navigator.pop(context); },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent, foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('OK, Got it! 🎉',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
               ),
             ),
           ),
@@ -420,64 +396,135 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // BUILD — identical to original
-  // ════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════
+  // BUILD
+  // ══════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    final stepTitles = ['Basic Info', 'Date & Location', 'Tickets'];
+    final stepLabels = ['Basic Info', 'Date & Location', 'Tickets'];
+    final stepIcons  = [Icons.edit_note_rounded, Icons.place_rounded, Icons.confirmation_num_rounded];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
-      appBar: AppBar(
-        title: const Text('Create Event',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: (_currentPage + 1) / 3,
-            backgroundColor: Colors.grey[200],
-            color: AppTheme.primaryColor,
-          ),
-        ),
-      ),
+      backgroundColor: _p4,
       body: Column(children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (i) {
-              final isActive = i == _currentPage;
-              final isDone   = i < _currentPage;
-              return Row(children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: isActive ? 36 : 32, height: isActive ? 36 : 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDone ? Colors.green
-                        : isActive ? AppTheme.primaryColor
-                        : Colors.grey.shade300,
+
+        // ── Purple gradient header ─────────────────────
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+              colors: [_p5, _p1, _p2],
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              child: Column(children: [
+
+                // Top row
+                Row(children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    ),
                   ),
-                  child: Center(
-                    child: isDone
-                        ? const Icon(Icons.check, color: Colors.white, size: 16)
-                        : Text('${i + 1}', style: TextStyle(
-                            color: isActive ? Colors.white : Colors.grey.shade600,
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('Create Event',
+                        style: TextStyle(color: Colors.white,
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text('${_currentPage + 1} / 3',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 13,
                             fontWeight: FontWeight.bold)),
                   ),
+                ]),
+                const SizedBox(height: 20),
+
+                // Step pills
+                Row(children: List.generate(3, (i) {
+                  final isActive = i == _currentPage;
+                  final isDone   = i < _currentPage;
+                  return Expanded(
+                    child: Row(children: [
+                      Expanded(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: EdgeInsets.symmetric(
+                              vertical: isActive ? 10 : 8),
+                          decoration: BoxDecoration(
+                            color: isDone
+                                ? Colors.white
+                                : isActive
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: isActive
+                                ? [BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 8, offset: const Offset(0, 4))]
+                                : [],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isDone ? Icons.check_circle_rounded : stepIcons[i],
+                                size: 14,
+                                color: isDone ? _p1 : isActive ? _p1 : Colors.white,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(stepLabels[i],
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDone ? _p1 : isActive ? _p1 : Colors.white,
+                                  )),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (i < 2)
+                        Container(
+                          width: 10, height: 2,
+                          color: i < _currentPage
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.3),
+                        ),
+                    ]),
+                  );
+                })),
+                const SizedBox(height: 14),
+
+                // Progress bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: (_currentPage + 1) / 3,
+                    backgroundColor: Colors.white.withOpacity(0.25),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    minHeight: 5,
+                  ),
                 ),
-                if (i < 2)
-                  Container(width: 50, height: 2,
-                      color: i < _currentPage ? Colors.green : Colors.grey.shade300),
-              ]);
-            }),
+              ]),
+            ),
           ),
         ),
-        Text(stepTitles[_currentPage],
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
-                color: AppTheme.primaryColor)),
-        const SizedBox(height: 8),
+
+        // ── Pages ──────────────────────────────────────
         Expanded(
           child: PageView(
             controller: _pageController,
@@ -486,55 +533,76 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             children: [_buildPage1(), _buildPage2(), _buildPage3()],
           ),
         ),
+
+        // ── Bottom nav ─────────────────────────────────
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06),
-                blurRadius: 10, offset: const Offset(0, -4))],
+            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 12,
+                offset: Offset(0, -4))],
           ),
           child: Row(children: [
             if (_currentPage > 0) ...[
               Expanded(
-                child: OutlinedButton(
+                child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : _prevPage,
+                  icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                  label: const Text('Back'),
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: _p1,
+                    side: const BorderSide(color: _p1),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('← Back', style: TextStyle(fontSize: 15)),
                 ),
               ),
               const SizedBox(width: 12),
             ],
             Expanded(
               flex: 2,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _nextPage,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _currentPage == 2
-                      ? Colors.orange.shade600
-                      : AppTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 3,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: _pGrad),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(
+                      color: _p1.withOpacity(0.45),
+                      blurRadius: 14, offset: const Offset(0, 5))],
                 ),
-                child: _isLoading
-                    ? const Row(mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(width: 18, height: 18,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2)),
-                          SizedBox(width: 10),
-                          Text('Uploading...', style: TextStyle(fontSize: 15)),
-                        ])
-                    : Text(
-                        _currentPage == 2 ? '🚀  Submit for Approval' : 'Continue →',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700)),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _nextPage,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isLoading
+                      ? const Row(mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 18, height: 18,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2)),
+                            SizedBox(width: 10),
+                            Text('Uploading...', style: TextStyle(fontSize: 15)),
+                          ])
+                      : Row(mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _currentPage == 2 ? '🚀  Submit for Approval' : 'Continue',
+                              style: const TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                            if (_currentPage < 2) ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded, size: 16),
+                            ],
+                          ]),
+                ),
               ),
             ),
           ]),
@@ -543,325 +611,584 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // PAGE 1 — CHANGED: image picker added at top, rest identical
-  // ════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════
+  // PAGE 1 — Basic Info
+  // ══════════════════════════════════════════════════════
   Widget _buildPage1() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: _card(children: [
+    final catColors = _catColors[_selectedCategory] ?? _pGrad;
 
-        // ── NEW: Image upload ─────────────────────────────────
-        _label('Event Image (Optional)'),
-        GestureDetector(
-          onTap: _showImageSourceSheet,
-          child: Container(
-            width: double.infinity,
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _imageFile != null
-                    ? AppTheme.primaryColor
-                    : Colors.grey.shade300,
-                width: _imageFile != null ? 2 : 1.5,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(children: [
+
+        // Image picker
+        _purpleCard(
+          icon: Icons.image_rounded,
+          title: 'Event Image',
+          subtitle: 'Optional',
+          child: GestureDetector(
+            onTap: _showImageSourceSheet,
+            child: Container(
+              width: double.infinity, height: 165,
+              decoration: BoxDecoration(
+                color: _imageFile != null ? null : _p4,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _imageFile != null ? _p1 : _p3.withOpacity(0.5),
+                  width: _imageFile != null ? 2 : 1.5,
+                ),
               ),
-            ),
-            child: _imageFile != null
-                // Preview of picked image
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
-                    child: Stack(fit: StackFit.expand, children: [
-                      Image.file(_imageFile!, fit: BoxFit.cover),
-                      Positioned(
-                        bottom: 0, left: 0, right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          color: Colors.black.withOpacity(0.5),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.edit, color: Colors.white, size: 14),
-                              SizedBox(width: 6),
-                              Text('Tap to change',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 12)),
-                            ],
+              child: _imageFile != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Stack(fit: StackFit.expand, children: [
+                        Image.file(_imageFile!, fit: BoxFit.cover),
+                        Positioned(bottom: 0, left: 0, right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [_p5.withOpacity(0.8), Colors.transparent],
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                                SizedBox(width: 6),
+                                Text('Tap to change',
+                                    style: TextStyle(color: Colors.white, fontSize: 12)),
+                              ],
+                            ),
                           ),
                         ),
+                      ]),
+                    )
+                  : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: _pGrad),
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(
+                              color: _p1.withOpacity(0.35),
+                              blurRadius: 12, offset: const Offset(0, 4))],
+                        ),
+                        child: const Icon(Icons.add_photo_alternate_rounded,
+                            color: Colors.white, size: 32),
                       ),
+                      const SizedBox(height: 12),
+                      const Text('Tap to add event image',
+                          style: TextStyle(color: _p2,
+                              fontWeight: FontWeight.w600, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('JPG or PNG (up to 5MB)',
+                          style: TextStyle(color: _p3, fontSize: 11)),
                     ]),
-                  )
-                // Empty placeholder
-                : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.add_photo_alternate_rounded,
-                        size: 48,
-                        color: AppTheme.primaryColor.withOpacity(0.4)),
-                    const SizedBox(height: 10),
-                    Text('Tap to add event image',
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Title & description
+        _purpleCard(
+          icon: Icons.edit_note_rounded,
+          title: 'Event Details',
+          subtitle: 'Tell us about your event',
+          child: Column(children: [
+            _purpleField(
+              controller: _titleCtrl,
+              label: 'Event Title *',
+              hint: 'e.g. Tech Conference 2026',
+              icon: Icons.title_rounded,
+            ),
+            const SizedBox(height: 14),
+            _purpleField(
+              controller: _descCtrl,
+              label: 'Description *',
+              hint: 'Describe your event (min 20 characters)...',
+              icon: Icons.description_rounded,
+              maxLines: 4,
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+
+        // Category chips
+        _purpleCard(
+          icon: _categoryIcons[_selectedCategory] ?? Icons.category_rounded,
+          title: 'Category',
+          subtitle: _selectedCategory,
+          iconColors: catColors,
+          child: Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _categories.map((cat) {
+              final isSelected = cat == _selectedCategory;
+              final colors = _catColors[cat] ?? _pGrad;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedCategory = cat),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(colors: colors)
+                        : null,
+                    color: isSelected ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.transparent
+                          : _p3.withOpacity(0.5),
+                    ),
+                    boxShadow: isSelected
+                        ? [BoxShadow(
+                            color: colors.first.withOpacity(0.4),
+                            blurRadius: 8, offset: const Offset(0, 3))]
+                        : [BoxShadow(color: Colors.black.withOpacity(0.04),
+                            blurRadius: 4)],
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                      _categoryIcons[cat] ?? Icons.event_rounded,
+                      size: 13,
+                      color: isSelected ? Colors.white : _p2,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(cat,
                         style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14)),
-                    const SizedBox(height: 4),
-                    Text('Uploaded to Cloudinary  •  JPG or PNG',
-                        style: TextStyle(
-                            color: Colors.grey.shade400, fontSize: 11)),
+                          fontSize: 12,
+                          fontWeight: isSelected
+                              ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : _p1,
+                        )),
                   ]),
+                ),
+              );
+            }).toList(),
           ),
         ),
         const SizedBox(height: 16),
-
-        // ── ORIGINAL fields unchanged ─────────────────────────
-        _label('Event Title *'),
-        _tf(_titleCtrl, hint: 'e.g. Tech Conference 2026', icon: Icons.title),
-        const SizedBox(height: 16),
-        _label('Category *'),
-        DropdownButtonFormField<String>(
-          value: _selectedCategory,
-          decoration: _dec(hint: 'Select category', icon: Icons.category),
-          items: _categories.map((c) => DropdownMenuItem(
-            value: c,
-            child: Row(children: [
-              Icon(_categoryIcons[c], size: 18, color: AppTheme.primaryColor),
-              const SizedBox(width: 10), Text(c),
-            ]),
-          )).toList(),
-          onChanged: (v) => setState(() => _selectedCategory = v!),
-        ),
-        const SizedBox(height: 16),
-        _label('Description *'),
-        _tf(_descCtrl,
-            hint: 'Describe your event (min 20 characters)...',
-            icon: Icons.description, maxLines: 4),
       ]),
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // PAGE 2 — identical to original
-  // ════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════
+  // PAGE 2 — Date & Location
+  // ══════════════════════════════════════════════════════
   Widget _buildPage2() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: _card(children: [
-        _label('Date & Time *'),
-        Row(children: [
-          Expanded(child: GestureDetector(
-            onTap: _pickDate,
-            child: _pickerBox(
-              icon: Icons.calendar_today, label: 'Date',
-              value: _selectedDate != null
-                  ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
-                  : 'Tap to select',
-              hasValue: _selectedDate != null),
-          )),
-          const SizedBox(width: 12),
-          Expanded(child: GestureDetector(
-            onTap: _pickTime,
-            child: _pickerBox(
-              icon: Icons.access_time, label: 'Time',
-              value: _selectedTime != null
-                  ? _formatTime(_selectedTime!) : 'Tap to select',
-              hasValue: _selectedTime != null),
-          )),
-        ]),
-        const SizedBox(height: 16),
-        _label('Venue / Location *'),
-        _tf(_locationCtrl, hint: 'e.g. BMICH, Colombo', icon: Icons.location_on),
-        const SizedBox(height: 16),
-        _label('GPS Coordinates *'),
-        const Text('Right-click Google Maps → copy coordinates',
-            style: TextStyle(fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: _tf(_latCtrl, hint: 'Latitude', icon: Icons.my_location,
-              keyboard: const TextInputType.numberWithOptions(decimal: true, signed: true))),
-          const SizedBox(width: 12),
-          Expanded(child: _tf(_lngCtrl, hint: 'Longitude', icon: Icons.my_location,
-              keyboard: const TextInputType.numberWithOptions(decimal: true, signed: true))),
-        ]),
-        const SizedBox(height: 10),
-        GestureDetector(
-          onTap: () {
-            _latCtrl.text = '6.9271'; _lngCtrl.text = '79.8612';
-            setState(() {});
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Set to Colombo, Sri Lanka'),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ));
-          },
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(children: [
+
+        _purpleCard(
+          icon: Icons.calendar_month_rounded,
+          title: 'Date & Time',
+          subtitle: 'When does it happen?',
           child: Row(children: [
-            Icon(Icons.tips_and_updates, size: 14, color: AppTheme.primaryColor),
-            const SizedBox(width: 4),
-            Text('Use Colombo, Sri Lanka coordinates',
-                style: TextStyle(color: AppTheme.primaryColor, fontSize: 12,
-                    decoration: TextDecoration.underline)),
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickDate,
+                child: _purplePickerBox(
+                  icon: Icons.calendar_today_rounded, label: 'Date',
+                  value: _selectedDate != null
+                      ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
+                      : 'Tap to select',
+                  hasValue: _selectedDate != null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickTime,
+                child: _purplePickerBox(
+                  icon: Icons.access_time_rounded, label: 'Time',
+                  value: _selectedTime != null
+                      ? _formatTime(_selectedTime!)
+                      : 'Tap to select',
+                  hasValue: _selectedTime != null,
+                ),
+              ),
+            ),
           ]),
         ),
+        const SizedBox(height: 12),
+
+        _purpleCard(
+          icon: Icons.place_rounded,
+          title: 'Location',
+          subtitle: 'Where is your event?',
+          child: Column(children: [
+            _purpleField(
+              controller: _locationCtrl,
+              label: 'Venue / Location *',
+              hint: 'e.g. BMICH, Colombo',
+              icon: Icons.location_on_rounded,
+            ),
+            const SizedBox(height: 14),
+            Text('Right-click Google Maps → copy coordinates',
+                style: TextStyle(color: _p3, fontSize: 11)),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: _purpleField(
+                controller: _latCtrl, label: 'Latitude', hint: '6.9271',
+                icon: Icons.my_location_rounded,
+                keyboard: const TextInputType.numberWithOptions(
+                    decimal: true, signed: true),
+              )),
+              const SizedBox(width: 12),
+              Expanded(child: _purpleField(
+                controller: _lngCtrl, label: 'Longitude', hint: '79.8612',
+                icon: Icons.my_location_rounded,
+                keyboard: const TextInputType.numberWithOptions(
+                    decimal: true, signed: true),
+              )),
+            ]),
+            const SizedBox(height: 12),
+
+            // Quick-fill Colombo
+            GestureDetector(
+              onTap: () {
+                _latCtrl.text = '6.9271'; _lngCtrl.text = '79.8612';
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: const Text('📍 Set to Colombo, Sri Lanka'),
+                  backgroundColor: _p1,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 2),
+                ));
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _p4,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _p3.withOpacity(0.5)),
+                ),
+                child: const Row(children: [
+                  Icon(Icons.tips_and_updates_rounded, size: 16, color: _p1),
+                  SizedBox(width: 8),
+                  Text('Use Colombo, Sri Lanka coordinates',
+                      style: TextStyle(color: _p1, fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
       ]),
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // PAGE 3 — CHANGED: image row added in summary, rest identical
-  // ════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════
+  // PAGE 3 — Tickets
+  // ══════════════════════════════════════════════════════
   Widget _buildPage3() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(children: [
-        _card(children: [
-          Container(
+
+        // Free toggle
+        _purpleCard(
+          icon: _isFree
+              ? Icons.card_giftcard_rounded
+              : Icons.monetization_on_rounded,
+          title: 'Ticket Type',
+          subtitle: _isFree ? 'Free admission' : 'Paid event',
+          child: Container(
             decoration: BoxDecoration(
-              color: _isFree ? Colors.green.withOpacity(0.08) : Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _isFree ? Colors.green : Colors.grey[300]!),
+              color: _isFree ? _p4 : Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: _isFree ? _p1.withOpacity(0.4) : _p3.withOpacity(0.4)),
             ),
             child: SwitchListTile(
-              title: const Text('Free Event',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text(_isFree ? 'Free for attendees' : 'Set price below',
-                  style: const TextStyle(fontSize: 12)),
-              value: _isFree, activeColor: Colors.green,
+              title: Text(
+                _isFree ? '🎁 Free Event' : '🎫 Paid Event',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                _isFree ? 'Attendees can join for free' : 'Set ticket price below',
+                style: const TextStyle(fontSize: 12),
+              ),
+              value: _isFree,
+              activeColor: _p1,
               onChanged: (v) => setState(() {
-                _isFree = v; if (v) _priceCtrl.text = '0';
+                _isFree = v;
+                if (v) _priceCtrl.text = '0';
               }),
             ),
           ),
-          const SizedBox(height: 16),
-          if (!_isFree) ...[
-            _label('Ticket Price (Rs.) *'),
-            _tf(_priceCtrl, hint: 'e.g. 1500',
-                icon: Icons.monetization_on, keyboard: TextInputType.number),
-            const SizedBox(height: 16),
-          ],
-          _label('Total Seats *'),
-          _tf(_seatsCtrl, hint: 'e.g. 200',
-              icon: Icons.event_seat, keyboard: TextInputType.number),
-        ]),
-        const SizedBox(height: 16),
-        _card(children: [
-          const Text('Event Summary',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-          const SizedBox(height: 12),
-          // NEW: image status in summary
-          _reviewRow(Icons.image_rounded, 'Image',
-              _imageFile != null ? '✅ Image selected' : 'No image (optional)'),
-          // ORIGINAL rows unchanged
-          _reviewRow(Icons.title,          'Title',    _titleCtrl.text),
-          _reviewRow(Icons.category,       'Category', _selectedCategory),
-          _reviewRow(Icons.calendar_today, 'Date',
-              _selectedDate != null
-                  ? DateFormat('MMM dd, yyyy').format(_selectedDate!) : 'Not set'),
-          _reviewRow(Icons.access_time, 'Time',
-              _selectedTime != null ? _formatTime(_selectedTime!) : 'Not set'),
-          _reviewRow(Icons.location_on, 'Location', _locationCtrl.text),
-          _reviewRow(Icons.payments,    'Price',
-              _isFree ? 'Free' : 'Rs. ${_priceCtrl.text}'),
-          _reviewRow(Icons.event_seat,  'Seats', _seatsCtrl.text),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.shade200),
+        ),
+        const SizedBox(height: 12),
+
+        if (!_isFree) ...[
+          _purpleCard(
+            icon: Icons.payments_rounded,
+            title: 'Ticket Price',
+            subtitle: 'Rs. per seat',
+            child: _purpleField(
+              controller: _priceCtrl,
+              label: 'Price per Ticket (Rs.) *',
+              hint: 'e.g. 1500',
+              icon: Icons.attach_money_rounded,
+              keyboard: TextInputType.number,
             ),
-            child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.admin_panel_settings_rounded, size: 16, color: Colors.orange),
-              SizedBox(width: 8),
-              Expanded(child: Text(
-                'Admin must approve before this event is visible on the events page.',
-                style: TextStyle(color: Colors.orange, fontSize: 12),
-              )),
-            ]),
           ),
-        ]),
-        const SizedBox(height: 8),
+          const SizedBox(height: 12),
+        ],
+
+        _purpleCard(
+          icon: Icons.event_seat_rounded,
+          title: 'Capacity',
+          subtitle: 'Total seats available',
+          child: _purpleField(
+            controller: _seatsCtrl,
+            label: 'Total Seats *',
+            hint: 'e.g. 200',
+            icon: Icons.people_rounded,
+            keyboard: TextInputType.number,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Summary
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [BoxShadow(
+                color: _p1.withOpacity(0.12),
+                blurRadius: 14, offset: const Offset(0, 5))],
+          ),
+          child: Column(children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: _pGrad),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+              ),
+              child: const Row(children: [
+                Icon(Icons.summarize_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Event Summary',
+                    style: TextStyle(color: Colors.white,
+                        fontWeight: FontWeight.bold, fontSize: 14)),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(children: [
+                _summaryRow(Icons.image_rounded, 'Image',
+                    _imageFile != null ? '✅ Image ready' : 'No image'),
+                _summaryRow(Icons.title_rounded, 'Title',
+                    _titleCtrl.text.isEmpty ? '—' : _titleCtrl.text),
+                _summaryRow(
+                    _categoryIcons[_selectedCategory] ?? Icons.category_rounded,
+                    'Category', _selectedCategory),
+                _summaryRow(Icons.calendar_today_rounded, 'Date',
+                    _selectedDate != null
+                        ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
+                        : 'Not set'),
+                _summaryRow(Icons.access_time_rounded, 'Time',
+                    _selectedTime != null ? _formatTime(_selectedTime!) : 'Not set'),
+                _summaryRow(Icons.location_on_rounded, 'Location',
+                    _locationCtrl.text.isEmpty ? '—' : _locationCtrl.text),
+                _summaryRow(Icons.payments_rounded, 'Price',
+                    _isFree ? 'Free' : 'Rs. ${_priceCtrl.text}'),
+                _summaryRow(Icons.event_seat_rounded, 'Seats',
+                    _seatsCtrl.text.isEmpty ? '—' : _seatsCtrl.text),
+              ]),
+            ),
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _p4,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _p3.withOpacity(0.5)),
+              ),
+              child: const Row(crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Icon(Icons.admin_panel_settings_rounded, size: 16, color: _p1),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Admin must approve before this event is visible on the events page.',
+                    style: TextStyle(color: _p2, fontSize: 12),
+                  ),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
       ]),
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // Helpers — identical to original
-  // ════════════════════════════════════════════════════════════
-  Widget _card({required List<Widget> children}) => Container(
-    padding: const EdgeInsets.all(16),
-    margin: const EdgeInsets.only(bottom: 4),
-    decoration: BoxDecoration(
-      color: Colors.white, borderRadius: BorderRadius.circular(16),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
-  );
+  // ══════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════
 
-  Widget _tf(TextEditingController ctrl, {
-    required String hint, required IconData icon,
-    int maxLines = 1, TextInputType keyboard = TextInputType.text,
+  Widget _purpleCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget child,
+    List<Color>? iconColors,
+  }) {
+    final colors = iconColors ?? _pGrad;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(
+            color: _p1.withOpacity(0.1),
+            blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Purple header strip
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: colors),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Row(children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 8),
+            Text(title,
+                style: const TextStyle(color: Colors.white,
+                    fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(width: 6),
+            Text('· $subtitle',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.8), fontSize: 11)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: child,
+        ),
+      ]),
+    );
+  }
+
+  Widget _purpleField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType keyboard = TextInputType.text,
   }) =>
       TextField(
-        controller: ctrl, maxLines: maxLines, keyboardType: keyboard,
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: keyboard,
         onChanged: (_) => setState(() {}),
-        decoration: _dec(hint: hint, icon: icon),
+        style: const TextStyle(color: _p5, fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: _p2, fontSize: 13),
+          hintText: hint,
+          hintStyle: TextStyle(color: _p3.withOpacity(0.7), fontSize: 13),
+          prefixIcon: Icon(icon, color: _p1, size: 18),
+          filled: true,
+          fillColor: _p4,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _p3.withOpacity(0.4))),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _p1, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14, vertical: 14),
+        ),
       );
 
-  Widget _pickerBox({required IconData icon, required String label,
-      required String value, required bool hasValue}) =>
+  Widget _purplePickerBox({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool hasValue,
+  }) =>
       Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: hasValue
-              ? AppTheme.primaryColor.withOpacity(0.5) : Colors.grey[400]!),
-          borderRadius: BorderRadius.circular(10),
+          color: hasValue ? _p4 : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasValue ? _p1.withOpacity(0.5) : _p3.withOpacity(0.4),
+            width: hasValue ? 1.5 : 1,
+          ),
         ),
         child: Row(children: [
-          Icon(icon, size: 18, color: hasValue ? AppTheme.primaryColor : Colors.grey),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              gradient: hasValue
+                  ? const LinearGradient(colors: _pGrad)
+                  : null,
+              color: hasValue ? null : _p4,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 15,
+                color: hasValue ? Colors.white : _p3),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 11)),
-            const SizedBox(height: 2),
-            Text(value, style: TextStyle(
-                color: hasValue ? Colors.black87 : Colors.grey[500],
-                fontWeight: FontWeight.w500, fontSize: 13)),
-          ])),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: TextStyle(
+                  color: hasValue ? _p1 : _p3,
+                  fontSize: 10, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(value, style: TextStyle(
+                  color: hasValue ? _p5 : _p3,
+                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 12)),
+            ]),
+          ),
         ]),
       );
 
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-  );
-
-  InputDecoration _dec({required String hint, required IconData icon}) =>
-      InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: AppTheme.primaryColor, size: 20),
-        filled: true, fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[350]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+  Widget _summaryRow(IconData icon, String label, String value) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+                color: _p4, borderRadius: BorderRadius.circular(6)),
+            child: Icon(icon, size: 14, color: _p1),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 76,
+            child: Text('$label:', style: const TextStyle(
+                color: _p3, fontSize: 12)),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '—' : value,
+              style: TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 12,
+                color: value == '—' ? _p3 : _p5,
+              ),
+            ),
+          ),
+        ]),
       );
-
-  Widget _reviewRow(IconData icon, String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, size: 16, color: AppTheme.primaryColor),
-      const SizedBox(width: 8),
-      SizedBox(width: 80, child: Text('$label:',
-          style: TextStyle(color: Colors.grey[600], fontSize: 13))),
-      Expanded(child: Text(value.isEmpty ? '—' : value,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
-    ]),
-  );
 }
