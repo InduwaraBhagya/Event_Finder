@@ -74,6 +74,11 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+
+      if (success) {
+        // navigate user immediately to the Cancelled tab so they see the result
+        _tabController.animateTo(2);
+      }
     }
   }
 

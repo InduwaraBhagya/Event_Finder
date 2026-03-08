@@ -110,18 +110,33 @@ class BookingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiClient.delete(
+      final response = await _apiClient.delete(
         '${AppConfig.bookingsEndpoint}/$bookingId',
         requiresAuth: true,
       );
 
-      // Update local state - mark as cancelled
-      final index = _bookings.indexWhere((b) => b.id == bookingId);
-      if (index != -1) {
-        _bookings[index] = _bookings[index].copyWith(status: 'cancelled');
+      // Try to reflect server's returned booking if available
+      // some APIs return the updated object; if so, replace local entry.
+      if (response is Map && response['booking'] != null) {
+        final updated = Booking.fromJson(response['booking']);
+        final idx = _bookings.indexWhere((b) => b.id == bookingId);
+        if (idx != -1) {
+          _bookings[idx] = updated;
+        }
+      } else {
+        // Optimistically update local state - mark as cancelled (two spellings)
+        final index = _bookings.indexWhere((b) => b.id == bookingId);
+        if (index != -1) {
+          _bookings[index] = _bookings[index]
+              .copyWith(status: 'cancelled');
+        }
       }
 
-      print(' BookingProvider: Booking $bookingId cancelled');
+      print(' BookingProvider: Booking $bookingId cancelled locally');
+
+      // refresh from server to keep in sync, but do not block caller
+      fetchBookings();
+
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');

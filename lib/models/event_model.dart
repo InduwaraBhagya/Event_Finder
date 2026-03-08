@@ -1,17 +1,3 @@
-// FILE: lib/models/event_model.dart
-// FIX: "type 'String' is not a subtype of type 'int' of 'index'"
-// ─────────────────────────────────────────────────────────────
-// WHAT CHANGED  (everything else is 100% identical to your original):
-//   + Added _parseInt()   static helper  (lines ~90-103)
-//   + Added _parseDouble() static helper (lines ~105-116)
-//   + Added _parseBool()   static helper (lines ~118-126)
-//   + fromJson: latitude/longitude  now use _parseDouble()
-//   + fromJson: price               now uses  _parseDouble()
-//   + fromJson: totalSeats          now uses  _parseInt()   ← main crash fix
-//   + fromJson: availableSeats      now uses  _parseInt()   ← main crash fix
-//   + fromJson: isFeatured          now uses  _parseBool()
-//   + fromJson: reviewCount         now uses  _parseInt()
-//   + fromJson: distance            now uses  _parseDouble()
 
 class Event {
   final String id;
@@ -101,15 +87,7 @@ class Event {
     }
   }
 
-  // ════════════════════════════════════════════════════════
-  // NEW: Safe type-conversion helpers
-  // MongoDB / REST APIs sometimes send numbers as Strings,
-  // e.g.  totalSeats: "400"  instead of  totalSeats: 400
-  // Direct cast like  json['totalSeats'] ?? 0  then crashes
-  // with: type 'String' is not a subtype of type 'int'
-  // ════════════════════════════════════════════════════════
-
-  /// Any → int  (null / String / double / int all handled safely)
+ 
   static int _parseInt(dynamic val, [int fallback = 0]) {
     if (val == null)   return fallback;
     if (val is int)    return val;
@@ -122,7 +100,6 @@ class Event {
     return fallback;
   }
 
-  /// Any → double  (null / String / int / double all handled safely)
   static double _parseDouble(dynamic val, [double fallback = 0.0]) {
     if (val == null)   return fallback;
     if (val is double) return val;
@@ -135,7 +112,6 @@ class Event {
     return fallback;
   }
 
-  /// Any → bool  (null / "true" / "false" / 0 / 1 all handled safely)
   static bool _parseBool(dynamic val, [bool fallback = false]) {
     if (val == null)  return fallback;
     if (val is bool)  return val;
@@ -146,84 +122,123 @@ class Event {
     return fallback;
   }
 
-  // ════════════════════════════════════════════════════════
-  // fromJson  — numeric fields now use safe parsers
-  // ════════════════════════════════════════════════════════
-  factory Event.fromJson(Map<String, dynamic> json) {
+
+  // Accepts a dynamic input so callers can pass a map or even a plain id string
+  factory Event.fromJson(dynamic json) {
+    // If the caller just provided an ID (e.g. booking response returned
+    // `event: "abcd1234"`), treat it as a minimal event object instead
+    if (json is String) {
+      return Event(
+        id: json,
+        title: '',
+        description: '',
+        category: 'Other',
+        date: DateTime.now(),
+        time: '',
+        location: '',
+        latitude: 0.0,
+        longitude: 0.0,
+        organizerId: '',
+        organizerName: '',
+        images: [],
+        price: 0.0,
+        totalSeats: 0,
+        availableSeats: 0,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    if (json is! Map<String, dynamic>) {
+      // unexpected type, return a blank event to avoid crashes
+      return Event(
+        id: '',
+        title: '',
+        description: '',
+        category: 'Other',
+        date: DateTime.now(),
+        time: '',
+        location: '',
+        latitude: 0.0,
+        longitude: 0.0,
+        organizerId: '',
+        organizerName: '',
+        images: [],
+        price: 0.0,
+        totalSeats: 0,
+        availableSeats: 0,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    final Map<String, dynamic> map = json;
+
     // Handle organizer as object or string (unchanged)
     String orgId   = '';
     String orgName = '';
 
-    if (json['organizer'] is Map) {
-      orgId   = json['organizer']['_id'] ?? json['organizer']['id'] ?? '';
-      orgName = json['organizer']['name'] ?? '';
-    } else if (json['organizer'] is String) {
-      orgId = json['organizer'];
+    if (map['organizer'] is Map) {
+      orgId   = map['organizer']['_id'] ?? map['organizer']['id'] ?? '';
+      orgName = map['organizer']['name'] ?? '';
+    } else if (map['organizer'] is String) {
+      orgId = map['organizer'];
     }
 
-    if (orgId.isEmpty)   orgId   = json['organizerId']   ?? '';
-    if (orgName.isEmpty) orgName = json['organizerName'] ?? 'Unknown Organizer';
+    if (orgId.isEmpty)   orgId   = map['organizerId']   ?? '';
+    if (orgName.isEmpty) orgName = map['organizerName'] ?? 'Unknown Organizer';
 
     return Event(
-      id:          json['_id'] ?? json['id'] ?? '',
-      title:       json['title']       ?? '',
-      description: json['description'] ?? '',
-      category:    _normalizeCategory(json['category']),
+      id:          map['_id'] ?? map['id'] ?? '',
+      title:       map['title']       ?? '',
+      description: map['description'] ?? '',
+      category:    _normalizeCategory(map['category']),
 
-      date: json['date'] != null
-          ? DateTime.tryParse(json['date']) ?? DateTime.now()
+      date: map['date'] != null
+          ? DateTime.tryParse(map['date']) ?? DateTime.now()
           : DateTime.now(),
 
-      time:     json['time']     ?? '',
-      location: json['location'] ?? '',
+      time:     map['time']     ?? '',
+      location: map['location'] ?? '',
 
-      // FIX: was (json['latitude'] ?? 0.0).toDouble() → crashes if String
-      latitude:  _parseDouble(json['latitude']),
-      longitude: _parseDouble(json['longitude']),
+      // FIX: was (map['latitude'] ?? 0.0).toDouble() → crashes if String
+      latitude:  _parseDouble(map['latitude']),
+      longitude: _parseDouble(map['longitude']),
 
       organizerId:   orgId,
       organizerName: orgName,
 
       // Handle images array safely (unchanged)
-      images: json['images'] != null
+      images: map['images'] != null
           ? List<String>.from(
-              (json['images'] as List)
+              (map['images'] as List)
                   .where((img) => img != null && img.toString().isNotEmpty))
           : [],
 
-      // FIX: was (json['price'] ?? 0.0).toDouble() → crashes if String
-      price: _parseDouble(json['price']),
+      price: _parseDouble(map['price']),
 
-      // ✅ MAIN FIX — these caused your crash:
-      // was: json['totalSeats'] ?? 0  → crashes when API returns "400"
-      totalSeats:     _parseInt(json['totalSeats']),
-      availableSeats: _parseInt(json['availableSeats']),
+      totalSeats:     _parseInt(map['totalSeats']),
+      availableSeats: _parseInt(map['availableSeats']),
 
-      // FIX: was json['isFeatured'] ?? false → crashes if String "true"
-      isFeatured: _parseBool(json['isFeatured']),
+      isFeatured: _parseBool(map['isFeatured']),
 
-      // rating unchanged — (json['rating'] as num) handles int & double
-      rating: json['rating'] != null
-          ? (json['rating'] as num).toDouble()
+      rating: map['rating'] != null
+          ? (map['rating'] as num).toDouble()
           : null,
 
-      // FIX: was json['reviewCount'] directly → crashes if String "5"
-      reviewCount: json['reviewCount'] != null
-          ? _parseInt(json['reviewCount'])
+      reviewCount: map['reviewCount'] != null
+          ? _parseInt(map['reviewCount'])
           : null,
 
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
           : DateTime.now(),
 
-      // FIX: was (json['distance'] as num).toDouble() → crashes if String
-      distance: json['distance'] != null
-          ? _parseDouble(json['distance'])
+      distance: map['distance'] != null
+          ? _parseDouble(map['distance'])
           : null,
 
       // Approval fields (unchanged)
-      status:    json['status']    ?? 'pending',
-      adminNote: json['adminNote'] ?? '',
+      status:    map['status']    ?? 'pending',
+      adminNote: map['adminNote'] ?? '',
     );
   }
 

@@ -13,7 +13,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:event_finder/providers/auth_provider.dart';
 import 'package:event_finder/screens/auth/register_screen.dart';
 import 'package:event_finder/screens/user/user_home_screen.dart';
@@ -42,7 +41,6 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
   bool  _obscurePassword    = true;
-  bool  _rememberMe         = false;
 
   // ── Animation controllers (same as splash) ───────────────
   late AnimationController _entranceCtrl;
@@ -66,7 +64,6 @@ class _LoginScreenState extends State<LoginScreen>
     super.initState();
     _setupAnimations();
     _generateParticles();
-    _loadSavedEmail();
   }
 
   void _generateParticles() {
@@ -123,25 +120,10 @@ class _LoginScreenState extends State<LoginScreen>
     _entranceCtrl.forward();
   }
 
-  Future<void> _loadSavedEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('saved_email');
-    if (saved != null && saved.isNotEmpty && mounted) {
-      setState(() { _emailController.text = saved; _rememberMe = true; });
-    }
-  }
-
-  Future<void> _saveEmail(bool remember) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (remember) await prefs.setString('saved_email', _emailController.text.trim());
-    else          await prefs.remove('saved_email');
-  }
 
   // ── ORIGINAL login logic — unchanged ─────────────────────
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      await _saveEmail(_rememberMe);
-
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.login(
         _emailController.text.trim(),
@@ -601,45 +583,6 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                   const SizedBox(height: 10),
 
-                                  // Remember me + Forgot row
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(children: [
-                                        SizedBox(width: 22, height: 22,
-                                          child: Checkbox(
-                                            value: _rememberMe,
-                                            onChanged: (v) => setState(() =>
-                                                _rememberMe = v ?? false),
-                                            activeColor: _p1,
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4)),
-                                          ),
-                                        ),
-                                       // const SizedBox(width: 6),
-                                        //Text('Remember me',
-                                          //  style: TextStyle(
-                                           //     color: Colors.grey.shade500,
-                                            //    fontSize: 12)),
-                                      ]),
-                                      //TextButton(
-                                       // onPressed: _showForgotPassword,
-                                        ////style: TextButton.styleFrom(
-                                          //  padding: EdgeInsets.zero,
-                                           //// minimumSize: Size.zero,
-                                           //// tapTargetSize: MaterialTapTargetSize
-                                               // .shrinkWrap),
-                                        //child: const Text(
-                                            //'Forgot Password?',
-                                          //  style: TextStyle(
-                                             //   color: _p1,
-                                             ////   fontWeight: FontWeight.w600,
-                                             //   fontSize: 12)),
-                                      //),
-                                    ],
-                                  ),
                                   const SizedBox(height: 20),
 
                                   // SIGN IN button — original Consumer preserved

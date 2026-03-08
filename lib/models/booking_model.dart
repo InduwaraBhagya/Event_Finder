@@ -25,14 +25,53 @@ class Booking {
     this.qrCode,
   });
 
+  // helpers for numeric parsing (similar to Event)
+  static int _parseInt(dynamic val, [int fallback = 0]) {
+    if (val == null) return fallback;
+    if (val is int) return val;
+    if (val is double) return val.toInt();
+    if (val is String) {
+      final t = val.trim();
+      if (t.isEmpty) return fallback;
+      return int.tryParse(t) ?? double.tryParse(t)?.toInt() ?? fallback;
+    }
+    return fallback;
+  }
+
+  static double _parseDouble(dynamic val, [double fallback = 0.0]) {
+    if (val == null) return fallback;
+    if (val is double) return val;
+    if (val is int) return val.toDouble();
+    if (val is String) {
+      final t = val.trim();
+      if (t.isEmpty) return fallback;
+      return double.tryParse(t) ?? fallback;
+    }
+    return fallback;
+  }
+
   factory Booking.fromJson(Map<String, dynamic> json) {
+    // event field can either be a full map or just an id string depending on
+    // what the backend returns (booking creation often returns only the id).
+    Event? evt;
+    if (json['event'] is Map<String, dynamic>) {
+      evt = Event.fromJson(json['event']);
+    } else if (json['event'] is String) {
+      // create a minimal placeholder using the ID only
+      evt = Event.fromJson(json['event']);
+    }
+
     return Booking(
       id: json['_id'] ?? json['id'] ?? '',
       userId: json['userId'] ?? json['user']?['_id'] ?? '',
-      eventId: json['eventId'] ?? json['event']?['_id'] ?? '',
-      event: json['event'] != null ? Event.fromJson(json['event']) : null,
-      numberOfSeats: json['numberOfSeats'] ?? 1,
-      totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
+      // determine event id carefully – the API may supply either a separate
+      // field, an object, or just the string id itself.
+      eventId: json['eventId'] ??
+          (json['event'] is Map ? json['event']['_id'] ?? '' :
+           json['event'] is String ? json['event'] : ''),
+      event: evt,
+      numberOfSeats: _parseInt(json['numberOfSeats'], 1),
+      totalPrice: _parseDouble(json['totalPrice'], 0.0),
       status: json['status'] ?? 'pending',
       bookingDate: json['bookingDate'] != null 
           ? DateTime.parse(json['bookingDate'])
@@ -84,5 +123,6 @@ class Booking {
 
   bool get isPending => status == 'pending';
   bool get isConfirmed => status == 'confirmed';
-  bool get isCancelled => status == 'cancelled';
+  bool get isCancelled =>
+      status.toLowerCase() == 'cancelled' || status.toLowerCase() == 'canceled';
 }
