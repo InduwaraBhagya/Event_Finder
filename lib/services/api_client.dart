@@ -154,6 +154,12 @@ class ApiClient {
           .timeout(const Duration(seconds: 30));
 
       print(' DELETE ${response.statusCode} ← $url');
+      // some backends return 404 if the resource was already removed; from
+      // the client's point of view the booking is gone so treat it as success
+      if (response.statusCode == 404) {
+        print(' DELETE 404 received – treating as success');
+        return {'success': true};
+      }
       return _handleResponse(response);
     } catch (e) {
       print(' DELETE Error: $e');

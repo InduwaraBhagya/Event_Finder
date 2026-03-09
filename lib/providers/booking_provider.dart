@@ -15,39 +15,52 @@ class BookingProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   //  Fetch user's bookings (requires auth token)
-  Future<void> fetchBookings() async {
+  /// Fetch user's bookings
+  ///
+  /// If [showError] is false the provider will still try to refresh the
+  /// internal list but it will *not* replace the existing list or update
+  /// `_errorMessage`.  This is useful when we trigger a background refresh
+  /// after a mutation (cancel/create) and don't want a transient network
+  /// hiccup to blow up the UI.
+  Future<void> fetchBookings({bool showError = true}) async {
     _isLoading = true;
-    _errorMessage = null;
+    if (showError) _errorMessage = null;
     notifyListeners();
 
     try {
       final response = await _apiClient.get(
         AppConfig.bookingsEndpoint,
-        requiresAuth: true, 
+        requiresAuth: true,
       );
 
       print('📥 BookingProvider fetchBookings: ${response?.keys?.toList()}');
 
       if (response == null) {
-        _bookings = [];
+        if (showError) _bookings = [];
         return;
       }
 
       // Handle both "bookings" and "data" response keys
-      List<dynamic>? list =
-          response['bookings'] ?? response['data'];
+      List<dynamic>? list = response['bookings'] ?? response['data'];
 
       if (list != null) {
-        _bookings = list
-            .map((json) => Booking.fromJson(json))
-            .toList();
+        final newList =
+            list.map((json) => Booking.fromJson(json)).toList();
+        // always update list and clear any stale error message, even when
+        // running a background refresh (showError == false).  failing to
+        // clear leaves the previous error text stuck in the UI.
+        _bookings = newList;
+        _errorMessage = null;
         print(' BookingProvider: Loaded ${_bookings.length} bookings');
-      } else {
+      } else if (showError) {
         _bookings = [];
       }
     } catch (e) {
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      print('❌ BookingProvider fetchBookings: $_errorMessage');
+      final msg = e.toString().replaceAll('Exception: ', '');
+      print('❌ BookingProvider fetchBookings: $msg');
+      if (showError) {
+        _errorMessage = msg;
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -115,8 +128,21 @@ class BookingProvider with ChangeNotifier {
         requiresAuth: true,
       );
 
-      // Try to reflect server's returned booking if available
-      // some APIs return the updated object; if so, replace local entry.
+      // basic validation – some backends just return { success: true }
+      bool success = false;
+      if (response is Map) {
+        if (response['success'] == true) success = true;
+        if (response['booking'] != null) success = true;
+      }
+
+      if (!success) {
+        _errorMessage = (response is Map)
+            ? (response['message'] ?? 'Failed to cancel booking')
+            : 'Unknown error';
+        return false;
+      }
+
+      // reflect server's returned booking if provided (preferred)
       if (response is Map && response['booking'] != null) {
         final updated = Booking.fromJson(response['booking']);
         final idx = _bookings.indexWhere((b) => b.id == bookingId);
@@ -124,22 +150,36 @@ class BookingProvider with ChangeNotifier {
           _bookings[idx] = updated;
         }
       } else {
-        // Optimistically update local state - mark as cancelled (two spellings)
+        // optimistic fallback – mark cancelled locally
         final index = _bookings.indexWhere((b) => b.id == bookingId);
         if (index != -1) {
-          _bookings[index] = _bookings[index]
-              .copyWith(status: 'cancelled');
+          _bookings[index] = _bookings[index].copyWith(status: 'cancelled');
         }
       }
 
       print(' BookingProvider: Booking $bookingId cancelled locally');
 
-      // refresh from server to keep in sync, but do not block caller
-      fetchBookings();
+      // kick off a background refresh so we stay in sync.  we suppress any
+      // error message so the UI doesn't switch to the error state if the
+      // network is flaky or the endpoint returns 404 as shown by the user.
+      fetchBookings(showError: false);
 
       return true;
-    } catch (e) {
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+    } on Exception catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      // treat 404 as a non‑fatal case – maybe the booking was already gone on
+      // server side.  Still update local state so UI feels responsive.
+      if (msg.contains('404')) {
+        final index = _bookings.indexWhere((b) => b.id == bookingId);
+        if (index != -1) {
+          _bookings[index] = _bookings[index].copyWith(status: 'cancelled');
+        }
+        fetchBookings(showError: false);
+        print(' BookingProvider cancelBooking: received 404, marking locally cancelled');
+        return true;
+      }
+
+      _errorMessage = msg;
       print(' BookingProvider cancelBooking: $_errorMessage');
       return false;
     } finally {

@@ -76,7 +76,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       );
 
       if (success) {
-        // navigate user immediately to the Cancelled tab so they see the result
+        // provider.cancelBooking already refreshed the cached list in the
+        // background; just switch to the Cancelled tab so the user sees their
+        // updated itinerary.
         _tabController.animateTo(2);
       }
     }
@@ -124,13 +126,17 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           }
 
           final all = provider.bookings;
-          final confirmed = all.where((b) => b.isConfirmed).toList();
+          // "All" should show every booking *except* those that have already
+          // been cancelled.  Customers expect a cancelled booking to vanish
+          // from the main list and appear only under the Cancelled tab.
+          final active = all.where((b) => !b.isCancelled).toList();
+          final confirmed = active.where((b) => b.isConfirmed).toList();
           final cancelled = all.where((b) => b.isCancelled).toList();
 
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildList(all, 'No bookings yet'),
+              _buildList(active, 'No bookings yet'),
               _buildList(confirmed, 'No confirmed bookings'),
               _buildList(cancelled, 'No cancelled bookings'),
             ],
